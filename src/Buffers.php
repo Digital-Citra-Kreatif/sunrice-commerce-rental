@@ -29,7 +29,7 @@ class Buffers
             }
         }
 
-        return max(0, (int) config('commerce-rental.buffer_days', 2));
+        return app(RentalSettings::class)->int('buffer_days');
     }
 
     /** @return array<int, int> */

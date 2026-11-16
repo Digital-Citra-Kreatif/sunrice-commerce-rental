@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Spatie\Permission\Models\Role;
 use Sunrice\Cms\Actions\Entries\CreateEntry;
 use Sunrice\Cms\Actions\Entries\PublishEntry;
 use Sunrice\Cms\Models\Blueprint;
@@ -24,6 +25,7 @@ use Sunrice\CommerceRental\Models\Unit;
 use Sunrice\CommerceRental\RentalPeriod;
 use Sunrice\CommerceRental\Tests\TestCase;
 use Workbench\App\Commerce\TestTransfer;
+use Workbench\App\Models\User;
 
 uses(TestCase::class)->in('Feature', 'Unit');
 // tests/Concurrency picks its own MySQL test case.
@@ -122,4 +124,13 @@ function placeRental(Cart $cart, array $input = []): Order
     submitCheckout($cart, $input)->assertSessionHasNoErrors();
 
     return Order::query()->latest('id')->firstOrFail();
+}
+
+function actingAsSuperAdmin(): User
+{
+    $user = User::query()->create(['name' => 'Admin', 'email' => 'admin@example.com', 'password' => bcrypt('password')]);
+    $user->assignRole(Role::findOrCreate((string) config('sunrice-admin.super_admin_role', 'super-admin'), 'web'));
+    test()->actingAs($user, 'web');
+
+    return $user;
 }

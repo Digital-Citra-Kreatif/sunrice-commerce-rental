@@ -16,6 +16,7 @@ use Sunrice\CommerceRental\Availability;
 use Sunrice\CommerceRental\Buffers;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\RentalPeriod;
+use Sunrice\CommerceRental\RentalSettings;
 
 /**
  * Books the units of an order's rental lines inside PlaceOrder's
@@ -77,14 +78,21 @@ class RentalReservations implements DiscountProvider, ReservesDiscounts
 
     protected function validate(RentalPeriod $period): void
     {
+        $settings = app(RentalSettings::class);
         $today = CarbonImmutable::today();
         if ($period->start->lt($today)) {
             throw new CheckoutRefused(__('commerce-rental::rental.errors.past'));
         }
-        if ($period->days() > (int) config('commerce-rental.max_days', 30)) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_long', ['days' => (int) config('commerce-rental.max_days', 30)]));
+        if ($period->start->lt($today->addDays($settings->int('min_days_ahead')))) {
+            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_soon', ['days' => $settings->int('min_days_ahead')]));
         }
-        if ($period->start->gt($today->addDays((int) config('commerce-rental.max_days_ahead', 365)))) {
+        if ($period->days() < max(1, $settings->int('min_days'))) {
+            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_short', ['days' => $settings->int('min_days')]));
+        }
+        if ($period->days() > $settings->int('max_days')) {
+            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_long', ['days' => $settings->int('max_days')]));
+        }
+        if ($period->start->gt($today->addDays($settings->int('max_days_ahead')))) {
             throw new CheckoutRefused(__('commerce-rental::rental.errors.too_far'));
         }
     }
