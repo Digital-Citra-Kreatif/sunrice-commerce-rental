@@ -48,6 +48,9 @@
         "laravel": {
             "providers": [
                 "Sunrice\\CommerceRental\\RentalServiceProvider"
+            ],
+            "sunrice-plugins": [
+                "Sunrice\\CommerceRental\\RentalPlugin"
             ]
         }
     },

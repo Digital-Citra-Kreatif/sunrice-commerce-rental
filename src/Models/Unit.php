@@ -16,6 +16,7 @@ use Sunrice\Commerce\Catalog\Models\Variant;
  * @property string $code
  * @property string $condition
  * @property bool $active
+ * @property string|null $note
  */
 class Unit extends Model
 {
@@ -41,5 +42,21 @@ class Unit extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /** @return HasMany<Transfer, $this> */
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(Transfer::class)->latest('id');
+    }
+
+    /**
+     * Active bookings (orders and blocks) that end today or later.
+     *
+     * @return HasMany<Booking, $this>
+     */
+    public function upcoming(): HasMany
+    {
+        return $this->bookings()->where('status', Booking::ACTIVE)->whereDate('ends_on', '>=', now()->toDateString())->orderBy('starts_on');
     }
 }
