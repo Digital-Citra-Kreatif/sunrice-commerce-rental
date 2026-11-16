@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Sunrice\CommerceRental;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Blade;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Sunrice\Commerce\Facades\Commerce;
 use Sunrice\Commerce\Features\Feature;
+use Sunrice\Commerce\Notifications\EmailDefinition;
+use Sunrice\CommerceRental\Console\RemindCommand;
 use Sunrice\CommerceRental\Pricing\RentalDeposit;
 use Sunrice\CommerceRental\Pricing\RentalPrice;
 use Sunrice\CommerceRental\Pricing\RentalReservations;
@@ -20,7 +23,8 @@ class RentalServiceProvider extends PackageServiceProvider
         $package->name('commerce-rental')
             ->hasConfigFile()
             ->hasTranslations()
-            ->hasViews('commerce-rental');
+            ->hasViews('commerce-rental')
+            ->hasCommand(RemindCommand::class);
     }
 
     public function packageRegistered(): void
@@ -45,6 +49,13 @@ class RentalServiceProvider extends PackageServiceProvider
         // The booking form on the product page of a rental (a theme can place <x-commerce-rental::booking> itself instead).
         Commerce::registerStorefrontSlot('product.before_add_to_cart', 'commerce-rental::slot', 'rental');
         $this->loadRoutesFrom(__DIR__.'/../routes/storefront.php');
+        Commerce::registerEmail(new EmailDefinition(Reminders::PICKUP, 'Rental pickup reminder', feature: 'rental', lang: 'commerce-rental::emails.pickup',
+            description: 'Before the pickup day (Settings → Rentals → Reminders).'));
+        Commerce::registerEmail(new EmailDefinition(Reminders::RETURN, 'Rental return reminder', feature: 'rental', lang: 'commerce-rental::emails.return',
+            description: 'Before the return day (Settings → Rentals → Reminders).'));
+        Commerce::emailTemplate('commerce-rental::emails.bookings', Reminders::PICKUP);
+        Commerce::emailTemplate('commerce-rental::emails.bookings', Reminders::RETURN);
+        $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $schedule->command('rental:remind')->hourly()->between('7:00', '20:00')->withoutOverlapping());
         Blade::anonymousComponentPath(__DIR__.'/../resources/views/components', 'commerce-rental');
     }
 }

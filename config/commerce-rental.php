@@ -13,4 +13,6 @@ return [
     'deposit_percent' => 50,
     'deposit_fixed' => 0,
     'balance_days_before' => 3,
+    'pickup_reminder_days' => 1,
+    'return_reminder_days' => 1,
 ];

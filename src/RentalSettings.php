@@ -49,6 +49,11 @@ class RentalSettings
             ['handle' => 'min_days_ahead', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Book at least (days ahead)', 'instructions' => '0: the same day.', 'config' => ['min' => 0, 'max' => 60], 'validation' => ['integer']],
             ['handle' => 'max_days_ahead', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Book at most (days ahead)', 'config' => ['min' => 1, 'max' => 730], 'validation' => ['integer', 'min:1']],
 
+            ['handle' => 'pickup_reminder_days', 'section' => 'Reminders', 'width' => 50, 'type' => 'number', 'label' => 'Remind of the pickup (days before)',
+                'instructions' => 'By email. 0: no reminder.', 'config' => ['min' => 0, 'max' => 14], 'validation' => ['integer']],
+            ['handle' => 'return_reminder_days', 'section' => 'Reminders', 'width' => 50, 'type' => 'number', 'label' => 'Remind of the return (days before)',
+                'instructions' => 'By email. 0: no reminder.', 'config' => ['min' => 0, 'max' => 14], 'validation' => ['integer']],
+
             ['handle' => 'deposit_mode', 'section' => 'Deposit', 'type' => 'select', 'label' => 'Deposit at checkout', 'config' => ['options' => [
                 ['value' => self::DEPOSIT_NONE, 'label' => 'None: pay in full'],
                 ['value' => self::DEPOSIT_PERCENT, 'label' => 'A percentage of the order'],
