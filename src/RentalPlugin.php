@@ -8,6 +8,7 @@ use Sunrice\Admin\BasePlugin;
 use Sunrice\Admin\Panel;
 use Sunrice\Commerce\CommercePlugin;
 use Sunrice\CommerceRental\Admin\BlockResource;
+use Sunrice\CommerceRental\Admin\BookingResource;
 use Sunrice\CommerceRental\Admin\BranchResource;
 use Sunrice\CommerceRental\Admin\UnitResource;
 
@@ -16,8 +17,8 @@ use Sunrice\CommerceRental\Admin\UnitResource;
  *
  *     $panel->plugin(CmsPlugin::make())->plugin(CommercePlugin::make())->plugin(RentalPlugin::make());
  *
- * Rentals → Units, Branches and Blocked dates (permissions rental.units.*,
- * rental.branches.*, rental.blocks.*).
+ * Rentals → Bookings, Units, Branches and Blocked dates (permissions
+ * rental.bookings.*, rental.units.*, rental.branches.*, rental.blocks.*).
  */
 final class RentalPlugin extends BasePlugin
 {
@@ -36,6 +37,6 @@ final class RentalPlugin extends BasePlugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources(UnitResource::class, BranchResource::class, BlockResource::class);
+        $panel->resources(BookingResource::class, UnitResource::class, BranchResource::class, BlockResource::class);
     }
 }

@@ -40,4 +40,17 @@ return [
         'buy_now' => 'Rent now',
         'rules' => 'Rentals of :min–:max days. Each dress is cleaned after it comes back before it goes out again.',
     ],
+    'conditions' => ['good' => 'good', 'repair' => 'needs repair', 'retired' => 'retired'],
+    'ops' => [
+        'not_active' => 'This booking is no longer active.',
+        'already_picked_up' => 'Already marked as picked up.',
+        'already_returned' => 'Already marked as returned.',
+        'unpaid' => 'The order is not paid (not even its deposit).',
+        'returned' => 'Marked as returned.',
+        'returned_clash' => 'Marked as returned. It came back late: its rest days now overlap :count later booking(s) (from :date). Give them another unit or other dates.',
+        'dates_changed' => 'Dates changed. The price did not change: charge any difference with an order edit or a payment link.',
+        'timeline_picked_up' => 'Unit :unit picked up by the customer',
+        'timeline_returned' => 'Unit :unit returned, :condition',
+        'timeline_dates' => 'Rental dates changed from :old to :new (unit :unit)',
+    ],
 ];

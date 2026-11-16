@@ -40,4 +40,17 @@ return [
         'buy_now' => 'Sewa sekarang',
         'rules' => 'Sewa :min–:max hari. Unit dibersihkan setelah dikembalikan sebelum disewakan lagi.',
     ],
+    'conditions' => ['good' => 'baik', 'repair' => 'perlu perbaikan', 'retired' => 'pensiun'],
+    'ops' => [
+        'not_active' => 'Booking ini sudah tidak aktif.',
+        'already_picked_up' => 'Sudah ditandai diambil.',
+        'already_returned' => 'Sudah ditandai dikembalikan.',
+        'unpaid' => 'Pesanan belum dibayar (DP pun belum).',
+        'returned' => 'Ditandai dikembalikan.',
+        'returned_clash' => 'Ditandai dikembalikan. Terlambat: masa jeda kini bertabrakan dengan :count booking berikutnya (mulai :date). Ganti unit atau tanggalnya.',
+        'dates_changed' => 'Tanggal diubah. Harga tidak berubah: tagih selisihnya lewat ubah pesanan atau link pembayaran.',
+        'timeline_picked_up' => 'Unit :unit diambil pelanggan',
+        'timeline_returned' => 'Unit :unit dikembalikan, kondisi :condition',
+        'timeline_dates' => 'Tanggal sewa diubah dari :old ke :new (unit :unit)',
+    ],
 ];

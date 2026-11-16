@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
+use Sunrice\Commerce\Orders\Models\Order;
 use Sunrice\CommerceRental\RentalPeriod;
 
 /**
@@ -25,6 +26,10 @@ use Sunrice\CommerceRental\RentalPeriod;
  * @property string $status active|released
  * @property string|null $note
  * @property int|null $user_id
+ * @property Carbon|null $picked_up_at
+ * @property Carbon|null $returned_at
+ * @property string|null $return_condition
+ * @property string|null $return_note
  */
 class Booking extends Model
 {
@@ -41,7 +46,7 @@ class Booking extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'starts_on' => 'date', 'ends_on' => 'date', 'available_from' => 'date',
+        'starts_on' => 'date', 'ends_on' => 'date', 'available_from' => 'date', 'picked_up_at' => 'datetime', 'returned_at' => 'datetime',
         'buffer_days' => 'integer', 'unit_id' => 'integer', 'order_id' => 'integer', 'order_item_id' => 'integer',
     ];
 
@@ -72,6 +77,23 @@ class Booking extends Model
                 ])]);
             }
         });
+    }
+
+    /** Where a customer's rental is: to pick up, out (rented), late (not back after its return day) or returned. */
+    public function stage(): string
+    {
+        return match (true) {
+            $this->returned_at !== null => 'returned',
+            $this->picked_up_at === null => 'to_pick_up',
+            $this->ends_on->lt(today()) => 'late',
+            default => 'out',
+        };
+    }
+
+    /** @return BelongsTo<Order, $this> */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class)->withTrashed();
     }
 
     /** @return BelongsTo<Unit, $this> */
