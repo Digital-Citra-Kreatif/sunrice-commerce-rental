@@ -11,6 +11,7 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Sunrice\Commerce\Facades\Commerce;
 use Sunrice\Commerce\Features\Feature;
 use Sunrice\Commerce\Notifications\EmailDefinition;
+use Sunrice\CommerceRental\Console\ImportUnitsCommand;
 use Sunrice\CommerceRental\Console\RemindCommand;
 use Sunrice\CommerceRental\Pricing\RentalDeposit;
 use Sunrice\CommerceRental\Pricing\RentalPrice;
@@ -24,7 +25,7 @@ class RentalServiceProvider extends PackageServiceProvider
             ->hasConfigFile()
             ->hasTranslations()
             ->hasViews('commerce-rental')
-            ->hasCommand(RemindCommand::class);
+            ->hasCommands([RemindCommand::class, ImportUnitsCommand::class]);
     }
 
     public function packageRegistered(): void
