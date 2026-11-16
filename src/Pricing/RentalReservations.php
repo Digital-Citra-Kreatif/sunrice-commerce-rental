@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Sunrice\CommerceRental\Pricing;
 
-use Carbon\CarbonImmutable;
 use Sunrice\Commerce\Checkout\CheckoutRefused;
 use Sunrice\Commerce\Orders\Models\Order;
 use Sunrice\Commerce\Orders\Models\OrderItem;
@@ -16,7 +15,7 @@ use Sunrice\CommerceRental\Availability;
 use Sunrice\CommerceRental\Buffers;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\RentalPeriod;
-use Sunrice\CommerceRental\RentalSettings;
+use Sunrice\CommerceRental\RentalRules;
 
 /**
  * Books the units of an order's rental lines inside PlaceOrder's
@@ -78,22 +77,9 @@ class RentalReservations implements DiscountProvider, ReservesDiscounts
 
     protected function validate(RentalPeriod $period): void
     {
-        $settings = app(RentalSettings::class);
-        $today = CarbonImmutable::today();
-        if ($period->start->lt($today)) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.past'));
-        }
-        if ($period->start->lt($today->addDays($settings->int('min_days_ahead')))) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_soon', ['days' => $settings->int('min_days_ahead')]));
-        }
-        if ($period->days() < max(1, $settings->int('min_days'))) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_short', ['days' => $settings->int('min_days')]));
-        }
-        if ($period->days() > $settings->int('max_days')) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_long', ['days' => $settings->int('max_days')]));
-        }
-        if ($period->start->gt($today->addDays($settings->int('max_days_ahead')))) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.too_far'));
+        $refusal = app(RentalRules::class)->refusal($period);
+        if ($refusal !== null) {
+            throw new CheckoutRefused($refusal);
         }
     }
 

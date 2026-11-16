@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\CommerceRental;
 
+use Illuminate\Support\Facades\Blade;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Sunrice\Commerce\Facades\Commerce;
@@ -18,7 +19,8 @@ class RentalServiceProvider extends PackageServiceProvider
     {
         $package->name('commerce-rental')
             ->hasConfigFile()
-            ->hasTranslations();
+            ->hasTranslations()
+            ->hasViews('commerce-rental');
     }
 
     public function packageRegistered(): void
@@ -26,6 +28,7 @@ class RentalServiceProvider extends PackageServiceProvider
         $this->app->singleton(Buffers::class);
         $this->app->singleton(Availability::class);
         $this->app->scoped(RentalSettings::class);
+        $this->app->scoped(LineDescriber::class);
     }
 
     public function packageBooted(): void
@@ -38,5 +41,10 @@ class RentalServiceProvider extends PackageServiceProvider
         Commerce::registerCalculationStage(RentalPrice::class, RentalPrice::PRIORITY);
         Commerce::registerCalculationStage(RentalDeposit::class, RentalDeposit::PRIORITY);
         Commerce::registerSettingsSection(RentalSettings::section());
+        Commerce::describeLinesUsing(fn (array $meta): array => app(LineDescriber::class)($meta));
+        // The booking form on the product page of a rental (a theme can place <x-commerce-rental::booking> itself instead).
+        Commerce::registerStorefrontSlot('product.before_add_to_cart', 'commerce-rental::slot', 'rental');
+        $this->loadRoutesFrom(__DIR__.'/../routes/storefront.php');
+        Blade::anonymousComponentPath(__DIR__.'/../resources/views/components', 'commerce-rental');
     }
 }
