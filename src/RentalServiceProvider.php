@@ -16,6 +16,7 @@ use Sunrice\CommerceRental\Console\RemindCommand;
 use Sunrice\CommerceRental\Pricing\RentalDeposit;
 use Sunrice\CommerceRental\Pricing\RentalPrice;
 use Sunrice\CommerceRental\Pricing\RentalReservations;
+use Sunrice\CommerceRental\Reports\UtilizationReport;
 
 class RentalServiceProvider extends PackageServiceProvider
 {
@@ -46,6 +47,7 @@ class RentalServiceProvider extends PackageServiceProvider
         Commerce::registerCalculationStage(RentalPrice::class, RentalPrice::PRIORITY);
         Commerce::registerCalculationStage(RentalDeposit::class, RentalDeposit::PRIORITY);
         Commerce::registerSettingsSection(RentalSettings::section());
+        Commerce::registerReport(UtilizationReport::class);
         Commerce::describeLinesUsing(fn (array $meta): array => app(LineDescriber::class)($meta));
         // The booking form on the product page of a rental (a theme can place <x-commerce-rental::booking> itself instead).
         Commerce::registerStorefrontSlot('product.before_add_to_cart', 'commerce-rental::slot', 'rental');
