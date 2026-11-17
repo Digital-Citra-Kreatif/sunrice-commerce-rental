@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 return [
     'errors' => [
+        'package' => 'Paket sewa ini sudah tidak tersedia.',
+        'package_days' => 'Paket ini untuk :days hari.',
         'dates_missing' => 'Pilih tanggal sewa dan cabang untuk setiap dress.',
         'unavailable' => 'Maaf, dress ini sudah dipesan pada tanggal tersebut. Silakan pilih tanggal atau cabang lain.',
         'past' => 'Tanggal sewa sudah lewat.',
@@ -27,6 +29,10 @@ return [
     'line' => ':from – :to (:days hari) · Cabang :branch',
     'line_one_day' => ':from (1 hari) · Cabang :branch',
     'form' => [
+        'package' => 'Jenis sewa',
+        'regular' => 'Reguler',
+        'package_option' => ':name: :days hari, tambah :fee',
+        'pricing' => 'Harga untuk :days hari. Lebih dari itu tambah :fee per hari.',
         'title' => 'Sewa dress ini',
         'size' => 'Ukuran',
         'start' => 'Tanggal ambil',

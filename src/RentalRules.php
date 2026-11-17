@@ -25,13 +25,21 @@ class RentalRules
         if ($period->start->lt($this->earliest())) {
             return __('commerce-rental::rental.errors.too_soon', ['days' => $this->settings->int('min_days_ahead')]);
         }
-        if ($period->days() < $this->minDays()) {
+        if ($period->package !== null) {
+            // A package has its own length, whatever the shortest and longest rentals are.
+            $package = $this->settings->package($period->package);
+            if ($package === null) {
+                return __('commerce-rental::rental.errors.package');
+            }
+            if ($period->days() !== $package['days']) {
+                return __('commerce-rental::rental.errors.package_days', ['days' => $package['days']]);
+            }
+        } elseif ($period->days() < $this->minDays()) {
             return __('commerce-rental::rental.errors.too_short', ['days' => $this->minDays()]);
-        }
-        if ($period->days() > $this->maxDays()) {
+        } elseif ($period->days() > $this->maxDays()) {
             return __('commerce-rental::rental.errors.too_long', ['days' => $this->maxDays()]);
         }
-        if ($period->start->gt($this->latest())) {
+        if ($this->latest() !== null && $period->start->gt($this->latest())) {
             return __('commerce-rental::rental.errors.too_far');
         }
 
@@ -43,9 +51,12 @@ class RentalRules
         return CarbonImmutable::today()->addDays($this->settings->int('min_days_ahead'));
     }
 
-    public function latest(): CarbonImmutable
+    /** The last day a rental can start, or null when there's no limit. */
+    public function latest(): ?CarbonImmutable
     {
-        return CarbonImmutable::today()->addDays(max(1, $this->settings->int('max_days_ahead')));
+        $days = $this->settings->int('max_days_ahead');
+
+        return $days > 0 ? CarbonImmutable::today()->addDays($days) : null;
     }
 
     public function minDays(): int

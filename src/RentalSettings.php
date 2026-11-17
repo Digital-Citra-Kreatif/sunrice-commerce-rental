@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunrice\CommerceRental;
 
+use Illuminate\Support\Str;
 use Sunrice\Commerce\Settings\SettingsSection;
 use Sunrice\Commerce\Settings\StoreSettings;
 
@@ -31,6 +32,32 @@ class RentalSettings
         return max(0, (int) $this->get($key));
     }
 
+    /**
+     * The rental packages customers can choose (Settings → Rentals → Packages), by key.
+     *
+     * @return array<string, array{key: string, name: string, days: int, fee: int}>
+     */
+    public function packages(): array
+    {
+        $out = [];
+        foreach ((array) $this->get('packages') as $row) {
+            if (! is_array($row) || trim((string) ($row['name'] ?? '')) === '' || (int) ($row['days'] ?? 0) < 1) {
+                continue;
+            }
+            $name = is_array($row['name']) ? (string) ($row['name'][app()->getLocale()] ?? reset($row['name']) ?: '') : (string) $row['name'];
+            $key = Str::slug((string) (is_array($row['name']) ? reset($row['name']) : $row['name'])) ?: 'package';
+            $out[$key] = ['key' => $key, 'name' => $name, 'days' => (int) $row['days'], 'fee' => max(0, (int) ($row['fee'] ?? 0))];
+        }
+
+        return $out;
+    }
+
+    /** @return array{key: string, name: string, days: int, fee: int}|null */
+    public function package(?string $key): ?array
+    {
+        return $key === null ? null : ($this->packages()[$key] ?? null);
+    }
+
     public static function section(): SettingsSection
     {
         return new SettingsSection('rental', 'Rentals', fn () => self::fields(), feature: 'rental', permission: 'commerce.settings.checkout', position: 35);
@@ -47,7 +74,23 @@ class RentalSettings
             ['handle' => 'min_days', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Shortest rental (days)', 'config' => ['min' => 1, 'max' => 60], 'validation' => ['integer', 'min:1']],
             ['handle' => 'max_days', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Longest rental (days)', 'config' => ['min' => 1, 'max' => 365], 'validation' => ['integer', 'min:1']],
             ['handle' => 'min_days_ahead', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Book at least (days ahead)', 'instructions' => '0: the same day.', 'config' => ['min' => 0, 'max' => 60], 'validation' => ['integer']],
-            ['handle' => 'max_days_ahead', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Book at most (days ahead)', 'config' => ['min' => 1, 'max' => 730], 'validation' => ['integer', 'min:1']],
+            ['handle' => 'max_days_ahead', 'section' => 'Bookings', 'width' => 50, 'type' => 'number', 'label' => 'Book at most (days ahead)', 'instructions' => '0: no limit.', 'config' => ['min' => 0, 'max' => 3650], 'validation' => ['integer', 'min:0']],
+
+            ['handle' => 'pricing', 'section' => 'Pricing', 'type' => 'select', 'label' => 'A product\'s price is', 'config' => ['options' => [
+                ['value' => 'package', 'label' => 'For the first days (below); each day more costs extra'],
+                ['value' => 'daily', 'label' => 'Per day (price × days)'],
+            ]]],
+            ['handle' => 'base_days', 'section' => 'Pricing', 'width' => 50, 'type' => 'number', 'label' => 'Days the price covers',
+                'condition' => ['field' => 'pricing', 'operator' => 'equals', 'value' => 'package'], 'config' => ['min' => 1, 'max' => 60], 'validation' => ['integer', 'min:1']],
+            ['handle' => 'extra_day_fee', 'section' => 'Pricing', 'width' => 50, 'type' => 'commerce_money', 'label' => 'Each day more',
+                'condition' => ['field' => 'pricing', 'operator' => 'equals', 'value' => 'package']],
+            ['handle' => 'packages', 'section' => 'Pricing', 'type' => 'repeater', 'label' => 'Packages',
+                'instructions' => 'Fixed-length rentals customers can choose instead, with a fee on top of the price (Out of town: 7 days, +50.000).',
+                'config' => ['max' => 10, 'fields' => [
+                    ['handle' => 'name', 'type' => 'text', 'label' => 'Name', 'required' => true, 'config' => ['max' => 60]],
+                    ['handle' => 'days', 'width' => 50, 'type' => 'number', 'label' => 'Days', 'required' => true, 'config' => ['min' => 1, 'max' => 60], 'validation' => ['integer', 'min:1']],
+                    ['handle' => 'fee', 'width' => 50, 'type' => 'commerce_money', 'label' => 'Fee on top of the price'],
+                ]]],
 
             ['handle' => 'pickup_reminder_days', 'section' => 'Reminders', 'width' => 50, 'type' => 'number', 'label' => 'Remind of the pickup (days before)',
                 'instructions' => 'By email. 0: no reminder.', 'config' => ['min' => 0, 'max' => 14], 'validation' => ['integer']],

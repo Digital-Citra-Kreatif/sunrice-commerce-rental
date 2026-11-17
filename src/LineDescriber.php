@@ -25,6 +25,9 @@ class LineDescriber
         $branch = $this->branches[$period->branchId] ??= Branch::query()->whereKey($period->branchId)->value('name');
         $replace = ['from' => $period->start->translatedFormat('j M Y'), 'to' => $period->end->translatedFormat('j M Y'), 'days' => $period->days(), 'branch' => $branch ?? '—'];
 
-        return [__($period->days() === 1 ? 'commerce-rental::rental.line_one_day' : 'commerce-rental::rental.line', $replace)];
+        $line = __($period->days() === 1 ? 'commerce-rental::rental.line_one_day' : 'commerce-rental::rental.line', $replace);
+        $package = app(RentalSettings::class)->package($period->package);
+
+        return [$package !== null ? $package['name'].' · '.$line : $line];
     }
 }

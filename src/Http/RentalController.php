@@ -17,8 +17,10 @@ use Sunrice\Commerce\Storefront\StorefrontRoutes;
 use Sunrice\Commerce\Support\MoneyFormatter;
 use Sunrice\CommerceRental\Availability;
 use Sunrice\CommerceRental\Models\Branch;
+use Sunrice\CommerceRental\Pricing\RentalPrice;
 use Sunrice\CommerceRental\RentalPeriod;
 use Sunrice\CommerceRental\RentalRules;
+use Sunrice\CommerceRental\RentalSettings;
 use Throwable;
 
 /**
@@ -34,15 +36,15 @@ class RentalController
     {
         $data = $request->validate([
             'variant' => ['required', 'integer'], 'branch' => ['required', 'integer'],
-            'start' => ['required', 'date_format:Y-m-d'], 'end' => ['required', 'date_format:Y-m-d', 'after_or_equal:start'],
-            'quantity' => ['nullable', 'integer', 'min:1', 'max:20'],
+            'start' => ['required', 'date_format:Y-m-d'], 'end' => ['required_without:package', 'nullable', 'date_format:Y-m-d', 'after_or_equal:start'],
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:20'], 'package' => ['nullable', 'string', 'max:60'],
         ]);
         $variant = Variant::query()->with('product')->find((int) $data['variant']);
         $branch = Branch::query()->where('active', true)->find((int) $data['branch']);
         if ($variant === null || $branch === null || ! $this->availability->isRental($variant)) {
             return back()->withInput()->with('commerce.error', __('commerce-rental::rental.errors.dates_missing'));
         }
-        $period = RentalPeriod::make($data['start'], $data['end'], $branch->id);
+        $period = $this->period($data['start'], $data['end'] ?? $data['start'], $branch->id, $data['package'] ?? null);
         $quantity = (int) ($data['quantity'] ?? 1);
         $refusal = $this->rules->refusal($period) ?? ($this->availability->count($variant, $period) < $quantity ? __('commerce-rental::rental.errors.unavailable') : null);
         if ($refusal !== null) {
@@ -59,8 +61,19 @@ class RentalController
             ->with('commerce.success', __('commerce::storefront.cart.added', ['product' => $title]));
     }
 
+    /** A package fixes the length: its days from the pickup day, whatever end was sent. */
+    protected function period(string $start, string $end, int $branch, ?string $package): RentalPeriod
+    {
+        $chosen = app(RentalSettings::class)->package($package ?: null);
+        if ($chosen !== null) {
+            $end = CarbonImmutable::parse($start)->addDays($chosen['days'] - 1)->toDateString();
+        }
+
+        return RentalPeriod::make($start, $end, $branch, $package ?: null);
+    }
+
     /**
-     * ?variant=&start=&end= → the price and the free units at each branch;
+     * ?variant=&start=&end=[&package=] → the price and the free units at each branch;
      * with &branch= and &month=YYYY-MM instead, the free units on each day.
      */
     public function availability(Request $request): JsonResponse
@@ -68,6 +81,7 @@ class RentalController
         $data = $request->validate([
             'variant' => ['required', 'integer'], 'branch' => ['nullable', 'integer'],
             'start' => ['nullable', 'date_format:Y-m-d'], 'end' => ['nullable', 'date_format:Y-m-d'], 'month' => ['nullable', 'date_format:Y-m'],
+            'package' => ['nullable', 'string', 'max:60'],
         ]);
         $variant = Variant::query()->find((int) $data['variant']);
         if ($variant === null || ! $this->availability->isRental($variant)) {
@@ -78,24 +92,27 @@ class RentalController
             $first = CarbonImmutable::createFromFormat('Y-m-d', $data['month'].'-01')?->startOfDay() ?? CarbonImmutable::today();
             $from = $first->max($this->rules->earliest());
 
-            return response()->json(['days' => $from->gt($this->rules->latest()) ? [] : $this->availability->calendar($variant, (int) $data['branch'], $from, (int) $from->diffInDays($first->endOfMonth()) + 1)]);
+            return response()->json(['days' => $this->rules->latest() !== null && $from->gt($this->rules->latest()) ? [] : $this->availability->calendar($variant, (int) $data['branch'], $from, (int) $from->diffInDays($first->endOfMonth()) + 1)]);
         }
 
-        if (! isset($data['start'], $data['end'])) {
+        if (! isset($data['start']) || (! isset($data['end']) && empty($data['package']))) {
             return response()->json(['message' => __('commerce-rental::rental.errors.dates_missing')], 422);
         }
         try {
-            $period = RentalPeriod::make($data['start'], $data['end'], 0);
+            $period = $this->period($data['start'], $data['end'] ?? $data['start'], 0, $data['package'] ?? null);
         } catch (Throwable) {
             return response()->json(['message' => __('commerce-rental::rental.errors.dates_missing')], 422);
         }
         $refusal = $this->rules->refusal($period);
         $money = app(MoneyFormatter::class);
 
+        $price = app(RentalPrice::class)->price($variant->price, $variant->price, $period)[0];
+
         return response()->json([
             'days' => $period->days(),
-            'price' => $variant->price * $period->days(),
-            'price_formatted' => $money->format($variant->price * $period->days()),
+            'end' => $period->end->toDateString(),
+            'price' => $price,
+            'price_formatted' => $money->format($price),
             'message' => $refusal,
             'branches' => $refusal !== null ? [] : array_map(fn (array $row) => [
                 'id' => $row['branch']->id, 'name' => $row['branch']->name, 'available' => $row['available'],

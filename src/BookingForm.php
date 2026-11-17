@@ -18,17 +18,20 @@ final class BookingForm
     /**
      * @param  list<array{id: int, title: string, price: string}>  $variants
      * @param  list<array{id: int, name: string}>  $branches
+     * @param  list<array{key: string, name: string, days: int, fee: string}>  $packages
      */
     public function __construct(
         public readonly Product $product,
         public readonly array $variants,
         public readonly array $branches,
         public readonly string $minDate,
-        public readonly string $maxDate,
+        public readonly ?string $maxDate,
         public readonly int $minDays,
         public readonly int $maxDays,
         public readonly string $action,
         public readonly string $availabilityUrl,
+        public readonly array $packages = [],
+        public readonly ?string $pricingNote = null,
     ) {}
 
     /** The form for the product of this entry, or null when it isn't rented out. */
@@ -57,11 +60,15 @@ final class BookingForm
             $variants->map(fn (Variant $v) => ['id' => $v->id, 'title' => $v->title, 'price' => $money->format($v->price)])->values()->all(),
             $branches->map(fn (Branch $b) => ['id' => $b->id, 'name' => $b->name])->values()->all(),
             $rules->earliest()->toDateString(),
-            $rules->latest()->toDateString(),
+            $rules->latest()?->toDateString(),
             $rules->minDays(),
             $rules->maxDays(),
             StorefrontRoutes::url('commerce-rental.cart.add'),
             StorefrontRoutes::url('commerce-rental.availability'),
+            array_values(array_map(fn (array $p) => [...$p, 'fee' => $money->format($p['fee'])], app(RentalSettings::class)->packages())),
+            app(RentalSettings::class)->get('pricing') === 'daily' ? null : __('commerce-rental::rental.form.pricing', [
+                'days' => app(RentalSettings::class)->int('base_days'), 'fee' => $money->format(app(RentalSettings::class)->int('extra_day_fee')),
+            ]),
         );
     }
 }

@@ -48,6 +48,10 @@ function rentalStore(int $jakartaUnits = 2): Variant
     app(StoreSettings::class)->saveSection('payments', ['methods' => ['test_transfer' => ['active' => true, 'title' => ['id' => 'Transfer', 'en' => 'Transfer'], 'deadline_hours' => 2]]]);
     app()->forgetScopedInstances();
 
+    // These tests price per day with no shortest rental; PricingTest covers the store's defaults.
+    app(StoreSettings::class)->saveSection('rental', ['pricing' => 'daily', 'min_days' => 1]);
+    app()->forgetScopedInstances();
+
     $variant = Variant::query()->where('sku', 'GM-S')->firstOrFail();
     $jakarta = Branch::query()->create(['code' => 'JKT', 'name' => 'Jakarta', 'whatsapp' => '6281100000001']);
     Branch::query()->create(['code' => 'BDG', 'name' => 'Bandung', 'whatsapp' => '6281100000002']);

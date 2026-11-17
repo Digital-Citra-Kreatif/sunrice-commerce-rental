@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 return [
     'errors' => [
+        'package' => 'This rental package is no longer offered.',
+        'package_days' => 'This package is for :days days.',
         'dates_missing' => 'Choose the rental dates and branch for every dress.',
         'unavailable' => 'Sorry, this dress is already booked on those dates. Please choose other dates or another branch.',
         'past' => 'The rental date has passed.',
@@ -27,6 +29,10 @@ return [
     'line' => ':from – :to (:days days) · :branch branch',
     'line_one_day' => ':from (1 day) · :branch branch',
     'form' => [
+        'package' => 'Rental',
+        'regular' => 'Regular',
+        'package_option' => ':name: :days days, :fee more',
+        'pricing' => 'The price is for :days days; each day more is :fee.',
         'title' => 'Rent this dress',
         'size' => 'Size',
         'start' => 'Pickup day',

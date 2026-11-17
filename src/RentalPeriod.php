@@ -18,15 +18,17 @@ final class RentalPeriod
         public readonly CarbonImmutable $start,
         public readonly CarbonImmutable $end,
         public readonly int $branchId,
+        /** A rental package's key (Settings → Rentals → Packages: "Luar kota, 7 days"), or null for a regular rental. */
+        public readonly ?string $package = null,
     ) {
         if ($end->lt($start)) {
             throw new InvalidArgumentException('The return day is before the pickup day.');
         }
     }
 
-    public static function make(string $start, string $end, int $branchId): self
+    public static function make(string $start, string $end, int $branchId, ?string $package = null): self
     {
-        return new self(CarbonImmutable::parse($start)->startOfDay(), CarbonImmutable::parse($end)->startOfDay(), $branchId);
+        return new self(CarbonImmutable::parse($start)->startOfDay(), CarbonImmutable::parse($end)->startOfDay(), $branchId, $package ?: null);
     }
 
     /**
@@ -41,16 +43,21 @@ final class RentalPeriod
             return null;
         }
         try {
-            return self::make((string) $rental['start'], (string) $rental['end'], (int) $rental['branch']);
+            return self::make((string) $rental['start'], (string) $rental['end'], (int) $rental['branch'], isset($rental['package']) ? (string) $rental['package'] : null);
         } catch (Throwable) {
             return null;
         }
     }
 
-    /** @return array{rental: array{start: string, end: string, branch: int}} */
+    /** @return array{rental: array{start: string, end: string, branch: int, package?: string}} */
     public function toMeta(): array
     {
-        return ['rental' => ['start' => $this->start->toDateString(), 'end' => $this->end->toDateString(), 'branch' => $this->branchId]];
+        $rental = ['start' => $this->start->toDateString(), 'end' => $this->end->toDateString(), 'branch' => $this->branchId];
+        if ($this->package !== null) {
+            $rental['package'] = $this->package;
+        }
+
+        return ['rental' => $rental];
     }
 
     public function days(): int

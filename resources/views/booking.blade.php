@@ -22,10 +22,21 @@
         <input type="hidden" name="variant" value="{{ $form->variants[0]['id'] }}" data-rental-variant>
     @endif
 
+    @if ($form->packages !== [])
+        <fieldset class="commerce-rental__packages">
+            <legend>{{ __('commerce-rental::rental.form.package') }}</legend>
+            <label><input type="radio" name="package" value="" @checked(! old('package')) data-rental-package data-days=""> {{ __('commerce-rental::rental.form.regular') }}</label>
+            @foreach ($form->packages as $package)
+                <label><input type="radio" name="package" value="{{ $package['key'] }}" @checked(old('package') === $package['key']) data-rental-package data-days="{{ $package['days'] }}">
+                    {{ __('commerce-rental::rental.form.package_option', ['name' => $package['name'], 'days' => $package['days'], 'fee' => $package['fee']]) }}</label>
+            @endforeach
+        </fieldset>
+    @endif
+
     <div class="commerce-rental__dates">
         <label class="commerce-rental__field">
             <span>{{ __('commerce-rental::rental.form.start') }}</span>
-            <input type="date" name="start" required min="{{ $form->minDate }}" max="{{ $form->maxDate }}" value="{{ old('start') }}" data-rental-start>
+            <input type="date" name="start" required min="{{ $form->minDate }}" @if ($form->maxDate) max="{{ $form->maxDate }}" @endif value="{{ old('start') }}" data-rental-start>
         </label>
         <label class="commerce-rental__field">
             <span>{{ __('commerce-rental::rental.form.end') }}</span>
@@ -43,7 +54,7 @@
     </label>
 
     <p class="commerce-rental__status" data-rental-status aria-live="polite">{{ __('commerce-rental::rental.form.choose') }}</p>
-    <p class="commerce-muted commerce-rental__rules">{{ __('commerce-rental::rental.form.rules', ['min' => $form->minDays, 'max' => $form->maxDays]) }}</p>
+    <p class="commerce-muted commerce-rental__rules">{{ $form->pricingNote ?? __('commerce-rental::rental.form.rules', ['min' => $form->minDays, 'max' => $form->maxDays]) }}</p>
 
     <div class="commerce-rental__actions">
         <button type="submit" class="commerce-add__button" data-rental-submit>{{ __('commerce-rental::rental.form.add') }}</button>
@@ -64,10 +75,14 @@
         var branch = form.querySelector('[data-rental-branch]'), variant = form.querySelector('[data-rental-variant]');
         var status = form.querySelector('[data-rental-status]'), submit = form.querySelector('[data-rental-submit]');
         var timer, last;
+        function chosenPackage() { var p = form.querySelector('[data-rental-package]:checked'); return p ? p : null; }
         function check() {
+            var pkg = chosenPackage(), days = pkg && pkg.dataset.days ? parseInt(pkg.dataset.days, 10) : 0;
+            end.readOnly = days > 0;
+            if (start.value && days > 0) { var d = new Date(start.value + 'T00:00:00'); d.setDate(d.getDate() + days - 1); end.value = d.toISOString().slice(0, 10); }
             if (start.value) { end.min = start.value; if (end.value && end.value < start.value) { end.value = start.value; } }
             if (!start.value || !end.value) { status.textContent = t.choose; return; }
-            var url = form.dataset.availability + '?' + new URLSearchParams({ variant: variant.value, start: start.value, end: end.value });
+            var url = form.dataset.availability + '?' + new URLSearchParams({ variant: variant.value, start: start.value, end: end.value, package: pkg ? pkg.value : '' });
             last = url;
             fetch(url, { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (data) {
                 if (url !== last) { return; }
@@ -80,7 +95,7 @@
                 if (submit) { submit.disabled = !ok; }
             }).catch(function () {});
         }
-        [start, end, branch, variant].forEach(function (el) { el && el.addEventListener('change', function () { clearTimeout(timer); timer = setTimeout(check, 150); }); });
+        [start, end, branch, variant].concat(Array.prototype.slice.call(form.querySelectorAll('[data-rental-package]'))).forEach(function (el) { el && el.addEventListener('change', function () { clearTimeout(timer); timer = setTimeout(check, 150); }); });
         check();
     });
 })();
