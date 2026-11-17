@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Sunrice\Commerce\Cart\Models\Cart;
 use Sunrice\Commerce\Cart\Models\CartItem;
+use Sunrice\Commerce\Catalog\Models\Variant;
+use Sunrice\Commerce\Catalog\ProductQuery;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\Models\Unit;
 
@@ -94,4 +97,19 @@ it('shows the rental on the order page', function () {
     $this->get($order->url())->assertOk()->assertSee('Cabang Jakarta')
         ->assertSee('https://wa.me/6281100000001', false)->assertSee(__('commerce-rental::rental.order.whatsapp'));
     expect($order->items->sole()->details()[0])->toContain('3 hari');
+});
+
+it('filters the catalog to dresses free on some days, at a branch', function () {
+    publishDress('Gaun Biru', [['id' => 'gb-s', 'sku' => 'GB-S', 'price' => 100000, 'track_stock' => false]]);
+    $blue = Variant::query()->where('sku', 'GB-S')->firstOrFail();
+    Unit::query()->create(['variant_id' => $blue->id, 'branch_id' => branch('BDG')->id, 'code' => 'BDG-GB-0001']);
+    placeRental(rentalCart($this->variant, period(5)));
+    $count = fn (array $q) => ProductQuery::fromRequest(Request::create('/products', 'GET', $q))->count();
+    $p = period(5);
+
+    expect($count([]))->toBe(2)
+        ->and($count(['rent_from' => $p->start->toDateString(), 'rent_to' => $p->end->toDateString()]))->toBe(1) // the red one is taken
+        ->and($count(['rent_from' => period(30)->start->toDateString(), 'rent_to' => period(30)->end->toDateString()]))->toBe(2)
+        ->and($count(['rent_from' => period(30)->start->toDateString(), 'rent_to' => period(30)->end->toDateString(), 'rent_branch' => $this->jkt->id]))->toBe(1)
+        ->and($count(['rent_from' => 'nonsense']))->toBe(2);
 });

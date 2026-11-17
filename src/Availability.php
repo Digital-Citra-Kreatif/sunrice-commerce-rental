@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Sunrice\CommerceRental;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Sunrice\Commerce\Catalog\Models\Product;
 use Sunrice\Commerce\Catalog\Models\Variant;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\Models\Branch;
@@ -93,6 +95,24 @@ class Availability
         }
 
         return $out;
+    }
+
+    /**
+     * Narrows a products query to those with a unit free for the whole period
+     * (at its branch, or at any when the period's branch is 0), with the
+     * store's default rest days: for listings ("available 10–12 Dec"); the
+     * add to cart and the checkout check again with each product's own.
+     *
+     * @param  Builder<Product>  $products
+     */
+    public function whereFree(Builder $products, RentalPeriod $period): void
+    {
+        $buffer = app(RentalSettings::class)->int('buffer_days');
+        $products->whereHas('variants', fn ($variants) => $variants->where('active', true)->whereIn('id', Unit::query()
+            ->where('active', true)->where('condition', 'good')
+            ->when($period->branchId > 0, fn ($q) => $q->where('branch_id', $period->branchId))
+            ->whereDoesntHave('bookings', fn ($q) => $q->overlapping($period, $buffer))
+            ->select('variant_id')));
     }
 
     /** Whether this variant is rented out (has units) rather than sold. */

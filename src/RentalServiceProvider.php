@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Sunrice\CommerceRental;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -49,6 +51,18 @@ class RentalServiceProvider extends PackageServiceProvider
         Commerce::registerCalculationStage(RentalDeposit::class, RentalDeposit::PRIORITY);
         Commerce::registerSettingsSection(RentalSettings::section());
         Commerce::registerReport(UtilizationReport::class);
+        // Listings: ?rent_from=2026-12-10&rent_to=2026-12-12[&rent_branch=1] keeps the dresses free then.
+        Commerce::registerCatalogFilter('rental', function (Request $request): ?array {
+            $from = (string) $request->query('rent_from', '');
+            $to = (string) ($request->query('rent_to') ?: $from);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) !== 1 || preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) !== 1 || $to < $from) {
+                return null;
+            }
+
+            return ['from' => $from, 'to' => $to, 'branch' => (int) $request->query('rent_branch', 0)];
+        }, fn (Builder $products, mixed $value) => is_array($value)
+            ? app(Availability::class)->whereFree($products, RentalPeriod::make((string) $value['from'], (string) $value['to'], (int) $value['branch']))
+            : null);
         Commerce::describeLinesUsing(fn (array $meta): array => app(LineDescriber::class)($meta));
         // The booking form on the product page of a rental (a theme can place <x-commerce-rental::booking> itself instead).
         Commerce::registerStorefrontSlot('product.before_add_to_cart', 'commerce-rental::slot', 'rental');
