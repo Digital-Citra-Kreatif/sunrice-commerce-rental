@@ -88,3 +88,20 @@ it('refuses to delete a branch with units', function () {
 
     expect(branch('JKT'))->not->toBeNull();
 });
+
+it('draws the calendar of a branch with bookings, blocks and rest days', function () {
+    $order = placeRental(rentalCart($this->variant, period(1, days: 2)));
+    actingAsSuperAdmin();
+
+    $this->get('/admin/rental/calendar?days=7')->assertOk()->assertInertia(fn ($page) => $page
+        ->component('Rental/Calendar', false)
+        ->where('filters.branch', branch('JKT')->id)
+        ->has('dates', 7)
+        ->where('units.0.code', 'JKT-GM-0001')
+        ->where('units.0.bookings.0.kind', 'order')
+        ->where('units.0.bookings.0.start', period(1)->start->toDateString())
+        ->where('units.0.bookings.0.free', period(1, days: 2)->end->addDays(3)->toDateString())
+        ->where('units.0.bookings.0.stage', 'to_pick_up'));
+
+    $this->get('/admin/rental/calendar?search=NOPE')->assertInertia(fn ($page) => $page->where('total', 0));
+});

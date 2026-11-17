@@ -40,6 +40,7 @@ class RentalServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->publishes([dirname(__DIR__).'/dist' => public_path('vendor/commerce-rental')], ['commerce-rental-assets', 'laravel-assets']);
 
         Commerce::registerFeature(new Feature('rental', 'selling', 'Rentals',
             'Rent products out by date: units per branch, bookings with rest days between rentals, no double booking.', ['orders']));
