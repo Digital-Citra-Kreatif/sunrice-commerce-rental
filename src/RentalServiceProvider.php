@@ -13,6 +13,7 @@ use Spatie\LaravelPackageTools\PackageServiceProvider;
 use Sunrice\Commerce\Facades\Commerce;
 use Sunrice\Commerce\Features\Feature;
 use Sunrice\Commerce\Notifications\EmailDefinition;
+use Sunrice\Commerce\Pricing\CalculationState;
 use Sunrice\CommerceRental\Console\ImportUnitsCommand;
 use Sunrice\CommerceRental\Console\RemindCommand;
 use Sunrice\CommerceRental\Pricing\RentalDeposit;
@@ -51,6 +52,8 @@ class RentalServiceProvider extends PackageServiceProvider
         Commerce::registerCalculationStage(RentalDeposit::class, RentalDeposit::PRIORITY);
         Commerce::registerSettingsSection(RentalSettings::section());
         Commerce::registerReport(UtilizationReport::class);
+        // Deliveries leave from the branch that has the dresses (couriers quote and collect there).
+        Commerce::shippingOriginUsing(fn (CalculationState $state): ?array => app(Branches::class)->ofCart($state)?->shippingAddress());
         // Listings: ?rent_from=2026-12-10&rent_to=2026-12-12[&rent_branch=1] keeps the dresses free then.
         Commerce::registerCatalogFilter('rental', function (Request $request): ?array {
             $from = (string) $request->query('rent_from', '');

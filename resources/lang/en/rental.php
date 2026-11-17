@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 return [
     'errors' => [
+        'one_branch' => 'For delivery, all dresses in an order must come from the same branch. Place separate orders, or pick them up at the branches.',
         'package' => 'This rental package is no longer offered.',
         'package_days' => 'This package is for :days days.',
         'dates_missing' => 'Choose the rental dates and branch for every dress.',

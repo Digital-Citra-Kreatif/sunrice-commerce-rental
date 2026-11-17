@@ -12,6 +12,7 @@ use Sunrice\Commerce\Pricing\CalculationState;
 use Sunrice\Commerce\Pricing\Contracts\DiscountProvider;
 use Sunrice\Commerce\Pricing\Contracts\ReservesDiscounts;
 use Sunrice\CommerceRental\Availability;
+use Sunrice\CommerceRental\Branches;
 use Sunrice\CommerceRental\Buffers;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\RentalPeriod;
@@ -35,6 +36,10 @@ class RentalReservations implements DiscountProvider, ReservesDiscounts
 
     public function commit(Order $order, CalculationState $state): void
     {
+        // A delivery leaves from one branch: dresses from several can be picked up, not sent together.
+        if ($order->shipping_address !== null && count(app(Branches::class)->idsOfCart($state)) > 1) {
+            throw new CheckoutRefused(__('commerce-rental::rental.errors.one_branch'));
+        }
         $lines = array_values($state->lines);
         // A stable lock order (by variant) so two orders never wait on each other.
         usort($lines, fn (CalcLine $a, CalcLine $b) => $a->variant->id <=> $b->variant->id);

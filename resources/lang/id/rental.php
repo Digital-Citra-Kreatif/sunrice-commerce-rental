@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 return [
     'errors' => [
+        'one_branch' => 'Untuk dikirim, semua dress dalam satu pesanan harus dari cabang yang sama. Pisahkan pesanannya, atau pilih ambil di cabang.',
         'package' => 'Paket sewa ini sudah tidak tersedia.',
         'package_days' => 'Paket ini untuk :days hari.',
         'dates_missing' => 'Pilih tanggal sewa dan cabang untuk setiap dress.',

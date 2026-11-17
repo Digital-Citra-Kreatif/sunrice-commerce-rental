@@ -69,7 +69,11 @@ final class BranchResource extends Resource
                 TextInput::make('whatsapp')->label('WhatsApp number')->maxLength(20)->rules(['nullable', 'regex:/^\+?[0-9 ()-]{8,20}$/'])
                     ->help('Customers renting from this branch are sent here.'),
                 NumberInput::make('sort_order')->label('Order')->integer()->min(0)->default(0),
-                Textarea::make('address')->rows(3)->maxLength(500)->span(2),
+                Textarea::make('address')->rows(3)->maxLength(500)->span(2)->help('Where customers pick up and return, and where couriers collect deliveries.'),
+                TextInput::make('postal_code')->label('Postal code')->maxLength(5)->rules(['nullable', 'digits:5'])->help('Needed for courier rates from this branch.'),
+                TextInput::make('phone')->label('Phone for couriers')->maxLength(30)->help('Empty: the WhatsApp number.'),
+                TextInput::make('latitude')->maxLength(20)->rules(['nullable', 'numeric', 'between:-90,90'])->help('From Google Maps (right-click the branch). Needed for GoSend and Grab.'),
+                TextInput::make('longitude')->maxLength(20)->rules(['nullable', 'numeric', 'between:-180,180']),
                 Toggle::make('active')->default(true)->help('Inactive branches are not offered to customers.'),
             ]),
         ]);
