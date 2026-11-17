@@ -53,4 +53,9 @@ return [
         'timeline_returned' => 'Unit :unit returned, :condition',
         'timeline_dates' => 'Rental dates changed from :old to :new (unit :unit)',
     ],
+    'order' => [
+        'branches' => '{1} Pick up and return at|[2,*] Pick up and return at',
+        'whatsapp' => 'Chat with the branch on WhatsApp',
+        'whatsapp_text' => 'Hi, I have a question about rental order :number.',
+    ],
 ];

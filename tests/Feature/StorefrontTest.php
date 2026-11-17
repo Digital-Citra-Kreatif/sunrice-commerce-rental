@@ -91,6 +91,7 @@ it('answers what is free at each branch, and on each day of a month', function (
 it('shows the rental on the order page', function () {
     $order = placeRental(rentalCart($this->variant, period(5)));
 
-    $this->get($order->url())->assertOk()->assertSee('Cabang Jakarta');
+    $this->get($order->url())->assertOk()->assertSee('Cabang Jakarta')
+        ->assertSee('https://wa.me/6281100000001', false)->assertSee(__('commerce-rental::rental.order.whatsapp'));
     expect($order->items->sole()->details()[0])->toContain('3 hari');
 });

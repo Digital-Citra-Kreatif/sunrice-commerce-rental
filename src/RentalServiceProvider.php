@@ -51,6 +51,7 @@ class RentalServiceProvider extends PackageServiceProvider
         Commerce::describeLinesUsing(fn (array $meta): array => app(LineDescriber::class)($meta));
         // The booking form on the product page of a rental (a theme can place <x-commerce-rental::booking> itself instead).
         Commerce::registerStorefrontSlot('product.before_add_to_cart', 'commerce-rental::slot', 'rental');
+        Commerce::registerStorefrontSlot('order.after_summary', 'commerce-rental::order-branches', 'rental');
         $this->loadRoutesFrom(__DIR__.'/../routes/storefront.php');
         Commerce::registerEmail(new EmailDefinition(Reminders::PICKUP, 'Rental pickup reminder', feature: 'rental', lang: 'commerce-rental::emails.pickup',
             description: 'Before the pickup day (Settings → Rentals → Reminders).'));

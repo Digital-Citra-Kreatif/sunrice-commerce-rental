@@ -53,4 +53,9 @@ return [
         'timeline_returned' => 'Unit :unit dikembalikan, kondisi :condition',
         'timeline_dates' => 'Tanggal sewa diubah dari :old ke :new (unit :unit)',
     ],
+    'order' => [
+        'branches' => '{1} Ambil dan kembalikan di cabang|[2,*] Ambil dan kembalikan di cabang-cabang',
+        'whatsapp' => 'Chat cabang via WhatsApp',
+        'whatsapp_text' => 'Halo, saya mau tanya soal pesanan sewa :number.',
+    ],
 ];
