@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Sunrice\Commerce\Cart\CartView;
 use Sunrice\Commerce\Checkout\CheckoutData;
+use Sunrice\Commerce\Settings\StoreSettings;
 use Sunrice\Commerce\Shipping\ShippingRequest;
 use Sunrice\CommerceRental\Models\Unit;
 
@@ -13,6 +14,7 @@ beforeEach(function () {
 });
 
 it('quotes deliveries from the branch that has the dress', function () {
+    app(StoreSettings::class)->saveSection('general', ['name' => 'UPLOVE']);
     $cart = rentalCart($this->variant, period(5));
     $state = CartView::for($cart, CheckoutData::fromCart($cart)->merge(checkoutInput())->context())->state;
 
