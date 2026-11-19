@@ -10,14 +10,16 @@ use Throwable;
 
 /**
  * A rental from the pickup day to the return day, both included: 10 to 12
- * June is 3 days. Kept on the cart line as meta `rental` {start, end, branch}.
+ * June is 3 days, picked up and returned at a location. Kept on the cart line
+ * as meta `rental` {start, end, location} (lines from before locations say
+ * `branch`: the same id).
  */
 final class RentalPeriod
 {
     public function __construct(
         public readonly CarbonImmutable $start,
         public readonly CarbonImmutable $end,
-        public readonly int $branchId,
+        public readonly int $locationId,
         /** A rental package's key (Settings → Rentals → Packages: "Luar kota, 7 days"), or null for a regular rental. */
         public readonly ?string $package = null,
     ) {
@@ -26,9 +28,9 @@ final class RentalPeriod
         }
     }
 
-    public static function make(string $start, string $end, int $branchId, ?string $package = null): self
+    public static function make(string $start, string $end, int $locationId, ?string $package = null): self
     {
-        return new self(CarbonImmutable::parse($start)->startOfDay(), CarbonImmutable::parse($end)->startOfDay(), $branchId, $package ?: null);
+        return new self(CarbonImmutable::parse($start)->startOfDay(), CarbonImmutable::parse($end)->startOfDay(), $locationId, $package ?: null);
     }
 
     /**
@@ -39,20 +41,21 @@ final class RentalPeriod
     public static function fromMeta(array $meta): ?self
     {
         $rental = $meta['rental'] ?? null;
-        if (! is_array($rental) || ! isset($rental['start'], $rental['end'], $rental['branch'])) {
+        $location = is_array($rental) ? ($rental['location'] ?? $rental['branch'] ?? null) : null;
+        if (! is_array($rental) || ! isset($rental['start'], $rental['end']) || $location === null) {
             return null;
         }
         try {
-            return self::make((string) $rental['start'], (string) $rental['end'], (int) $rental['branch'], isset($rental['package']) ? (string) $rental['package'] : null);
+            return self::make((string) $rental['start'], (string) $rental['end'], (int) $location, isset($rental['package']) ? (string) $rental['package'] : null);
         } catch (Throwable) {
             return null;
         }
     }
 
-    /** @return array{rental: array{start: string, end: string, branch: int, package?: string}} */
+    /** @return array{rental: array{start: string, end: string, location: int, package?: string}} */
     public function toMeta(): array
     {
-        $rental = ['start' => $this->start->toDateString(), 'end' => $this->end->toDateString(), 'branch' => $this->branchId];
+        $rental = ['start' => $this->start->toDateString(), 'end' => $this->end->toDateString(), 'location' => $this->locationId];
         if ($this->package !== null) {
             $rental['package'] = $this->package;
         }

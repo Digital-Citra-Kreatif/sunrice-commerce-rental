@@ -23,16 +23,18 @@ use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Admin\Support\Card;
 use Sunrice\Commerce\Catalog\Models\Variant;
+use Sunrice\CommerceMultiLocations\Locations;
+use Sunrice\CommerceMultiLocations\Models\Location;
 use Sunrice\CommerceRental\Actions\MoveUnit;
 use Sunrice\CommerceRental\Models\Booking;
-use Sunrice\CommerceRental\Models\Branch;
 use Sunrice\CommerceRental\Models\Transfer;
 use Sunrice\CommerceRental\Models\Unit;
 use Sunrice\CommerceRental\RentalException;
+use Sunrice\CommerceRental\Wording;
 
 /**
  * Rentals → Units: each physical dress, with its code (on its label), the
- * variant it is (product and size) and the branch that has it.
+ * variant it is (product and size) and the location that has it.
  */
 final class UnitResource extends Resource
 {
@@ -73,7 +75,7 @@ final class UnitResource extends Resource
     /** @return Builder<Model> */
     public static function query(): Builder
     {
-        return parent::query()->with(['branch', 'variant']);
+        return parent::query()->with(['location', 'variant']);
     }
 
     public static function form(Form $form): Form
@@ -83,8 +85,8 @@ final class UnitResource extends Resource
                 TextInput::make('code')->required()->maxLength(40)->unique()->help('As on the label sewn in the dress: JKT-GM-0001.'),
                 BelongsToSelect::make('variant')->label('Product variant')->required()
                     ->title(fn (Model $v) => $v instanceof Variant ? trim(($v->sku ?? '').' · '.$v->title, ' ·') : '')->searchColumns('sku', 'title'),
-                BelongsToSelect::make('branch')->required()->title('name')->onlyOnCreate()
-                    ->help('To move it later, use Move to branch: the move is recorded.'),
+                BelongsToSelect::make('location')->label(Wording::label())->required()->title('name')->onlyOnCreate()
+                    ->help('To move it later, use Move: the move is recorded.'),
                 Select::make('condition')->options(self::CONDITIONS)->required()->default('good'),
                 Toggle::make('active')->default(true)->help('Inactive units are never booked.'),
                 Textarea::make('note')->rows(3)->maxLength(1000)->span(2),
@@ -99,31 +101,31 @@ final class UnitResource extends Resource
                 Column::make('code')->searchable()->sortable(),
                 Column::make('variant.sku')->label('SKU'),
                 Column::make('variant.title')->label('Variant'),
-                Column::make('branch.name')->label('Branch'),
+                Column::make('location.name')->label(Wording::label()),
                 Column::make('condition')->badge()->format(fn (?string $c) => self::CONDITIONS[$c ?? ''] ?? (string) $c),
                 Column::make('active')->boolean(),
             ])
             ->filters([
-                Filter::make('branch_id')->label('Branch')->options(fn () => Branch::query()->orderBy('sort_order')->pluck('name', 'id')->all()),
+                Filter::make('location_id')->label(Wording::label())->options(fn () => app(Locations::class)->all()->pluck('name', 'id')->all()),
                 Filter::make('condition')->options(self::CONDITIONS),
                 Filter::make('active')->boolean(),
             ])
             ->actions([
-                Action::make('move')->label('Move to branch')
+                Action::make('move')->label('Move to '.Wording::location('en'))
                     ->form(
-                        Select::make('branch')->label('To branch')->options(fn () => Branch::query()->where('active', true)->orderBy('sort_order')->pluck('name', 'id')->all())->required(),
+                        Select::make('location')->label('To '.Wording::location('en'))->options(fn () => app(Locations::class)->active()->pluck('name', 'id')->all())->required(),
                         Textarea::make('note')->label('Why (optional)')->maxLength(500),
                     )
                     ->handle(function (Model $unit, array $input): string {
                         /** @var Unit $unit */
-                        $to = Branch::query()->findOrFail((int) $input['branch']);
+                        $to = Location::query()->findOrFail((int) $input['location']);
                         try {
                             app(MoveUnit::class)->handle($unit, $to, auth()->id(), $input['note'] ?? null);
                         } catch (RentalException $e) {
                             throw new ActionFailed($e->getMessage());
                         }
 
-                        return __('commerce-rental::rental.move.done', ['code' => $unit->code, 'branch' => $to->name]);
+                        return Wording::trans('commerce-rental::rental.move.done', ['code' => $unit->code, 'name' => $to->name]);
                     }),
             ])
             ->defaultSort('code')

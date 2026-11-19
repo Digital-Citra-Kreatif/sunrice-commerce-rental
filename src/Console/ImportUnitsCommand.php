@@ -10,7 +10,7 @@ use Sunrice\CommerceRental\Actions\ImportUnits;
 /** rental:import-units units.csv [--dry-run] [--partial] */
 class ImportUnitsCommand extends Command
 {
-    protected $signature = 'rental:import-units {file : CSV with code, sku, branch[, condition, active, note]} {--dry-run : Check it and say what would change} {--partial : Import the good rows even when some are wrong}';
+    protected $signature = 'rental:import-units {file : CSV with code, sku, location[, condition, active, note]} {--dry-run : Check it and say what would change} {--partial : Import the good rows even when some are wrong}';
 
     protected $description = 'Create or update rental units from a CSV';
 

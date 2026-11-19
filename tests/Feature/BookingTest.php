@@ -9,6 +9,7 @@ use Sunrice\Commerce\Orders\OrderStatus;
 use Sunrice\CommerceRental\Availability;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\Models\Unit;
+use Sunrice\CommerceRental\Wording;
 
 it('prices a rental as the daily price times the days', function () {
     $variant = rentalStore();
@@ -43,7 +44,7 @@ it('never books the same unit twice: the next order gets the other unit, the one
 
     expect(Booking::query()->orderBy('id')->get()->map(fn ($b) => $b->unit->code)->all())->toBe(['JKT-GM-0001', 'JKT-GM-0002']);
 
-    submitCheckout(rentalCart($variant, period(7)))->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.unavailable'));
+    submitCheckout(rentalCart($variant, period(7)))->assertSessionHas('commerce.error', Wording::trans('commerce-rental::rental.errors.unavailable'));
     expect(Order::query()->count())->toBe(2)
         ->and(Booking::query()->count())->toBe(2);
 });
@@ -70,17 +71,17 @@ it('uses the buffer of the product over the default', function () {
     expect(app(Availability::class)->count($variant, period(8, days: 1)))->toBe(1);
 });
 
-it('counts units per branch', function () {
+it('counts units per location', function () {
     $variant = rentalStore();
 
-    expect(app(Availability::class)->count($variant, period(5, branch: 'JKT')))->toBe(2)
-        ->and(app(Availability::class)->count($variant, period(5, branch: 'BDG')))->toBe(0);
-    submitCheckout(rentalCart($variant, period(5, branch: 'BDG')))->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.unavailable'));
+    expect(app(Availability::class)->count($variant, period(5, location: 'JKT')))->toBe(2)
+        ->and(app(Availability::class)->count($variant, period(5, location: 'BDG')))->toBe(0);
+    submitCheckout(rentalCart($variant, period(5, location: 'BDG')))->assertSessionHas('commerce.error', Wording::trans('commerce-rental::rental.errors.unavailable'));
 });
 
 it('refuses a rental line without dates', function () {
     $variant = rentalStore();
-    submitCheckout(rentalCart($variant, null))->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.dates_missing'));
+    submitCheckout(rentalCart($variant, null))->assertSessionHas('commerce.error', Wording::trans('commerce-rental::rental.errors.dates_missing'));
 
     expect(Order::query()->count())->toBe(0);
 });

@@ -1,6 +1,6 @@
 {
     "name": "sunrice/commerce-rental",
-    "description": "Rentals for Sunrice Commerce: physical units per branch, date-range bookings with buffer days, no double booking, rental pricing and rental lifecycle.",
+    "description": "Rentals for Sunrice Commerce: physical units per location, date-range bookings with buffer days, no double booking, rental pricing and rental lifecycle.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -17,6 +17,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../sunrice-commerce-multi-locations",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -24,7 +31,8 @@
         "illuminate/contracts": "^13.0",
         "illuminate/support": "^13.0",
         "spatie/laravel-package-tools": "^1.93",
-        "sunrice/commerce": "^1.0 || dev-main"
+        "sunrice/commerce": "^1.0 || dev-main",
+        "sunrice/commerce-multi-locations": "^1.0 || dev-main"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",

@@ -1,12 +1,12 @@
-{{-- The body of the rental reminders: each rental with its days and the branch to go to. $context['bookings'] --}}
+{{-- The body of the rental reminders: each rental with its days and the location to go to. $context['bookings'] --}}
 @foreach ($context['bookings'] ?? [] as $booking)
-@php($branch = $booking->unit?->branch)
-- **{{ $booking->order?->items->firstWhere('id', $booking->order_item_id)?->title() ?? $booking->unit?->code }}**: {{ $booking->starts_on->translatedFormat('j F Y') }} – {{ $booking->ends_on->translatedFormat('j F Y') }}@if ($branch) · {{ __('commerce-rental::emails.branch', ['branch' => $branch->name]) }}@endif
+@php($place = $booking->unit?->location)
+- **{{ $booking->order?->items->firstWhere('id', $booking->order_item_id)?->title() ?? $booking->unit?->code }}**: {{ $booking->starts_on->translatedFormat('j F Y') }} – {{ $booking->ends_on->translatedFormat('j F Y') }}@if ($place) · {{ \Sunrice\CommerceRental\Wording::trans('commerce-rental::emails.location', ['name' => $place->name]) }}@endif
 
-@if ($branch?->address)
-  {{ $branch->address }}
+@if ($place?->address)
+  {{ $place->address }}
 @endif
-@if ($branch?->whatsapp)
-  {{ __('commerce-rental::emails.whatsapp', ['number' => $branch->whatsapp]) }}
+@if ($place?->whatsapp)
+  {{ \Sunrice\CommerceRental\Wording::trans('commerce-rental::emails.whatsapp', ['number' => $place->whatsapp]) }}
 @endif
 @endforeach

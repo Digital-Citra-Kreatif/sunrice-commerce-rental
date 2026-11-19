@@ -19,4 +19,9 @@ return [
     'balance_days_before' => 3,
     'pickup_reminder_days' => 1,
     'return_reminder_days' => 1,
+
+    // What the places dresses are picked up at are called, on the storefront, in emails and on the rental
+    // screens: a word ('branch'), one per language (['id' => 'cabang', 'en' => 'branch']), or null for
+    // "location" ("lokasi"). Shop → Locations, where they are managed, keeps its name.
+    'location_term' => null,
 ];

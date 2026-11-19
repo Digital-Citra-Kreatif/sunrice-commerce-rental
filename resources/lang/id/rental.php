@@ -3,12 +3,13 @@
 declare(strict_types=1);
 
 return [
+    // Sebutan tempat ambil dress (config commerce-rental.location_term bisa mengubahnya).
+    'term' => 'lokasi',
     'errors' => [
-        'one_branch' => 'Untuk dikirim, semua dress dalam satu pesanan harus dari cabang yang sama. Pisahkan pesanannya, atau pilih ambil di cabang.',
         'package' => 'Paket sewa ini sudah tidak tersedia.',
         'package_days' => 'Paket ini untuk :days hari.',
-        'dates_missing' => 'Pilih tanggal sewa dan cabang untuk setiap dress.',
-        'unavailable' => 'Maaf, dress ini sudah dipesan pada tanggal tersebut. Silakan pilih tanggal atau cabang lain.',
+        'dates_missing' => 'Pilih tanggal sewa dan :location untuk setiap dress.',
+        'unavailable' => 'Maaf, dress ini sudah dipesan pada tanggal tersebut. Silakan pilih tanggal atau :location lain.',
         'past' => 'Tanggal sewa sudah lewat.',
         'too_long' => 'Sewa paling lama :days hari.',
         'too_far' => 'Tanggal sewa terlalu jauh ke depan.',
@@ -17,18 +18,18 @@ return [
     ],
     'deposit' => 'DP sekarang',
     'move' => [
-        'same_branch' => 'Unit ini sudah di cabang tersebut.',
-        'booked' => '{1} Unit ini masih punya :count booking pelanggan di cabang sekarang. Pindahkan setelah dikembalikan, atau ubah booking-nya dulu.|[2,*] Unit ini masih punya :count booking pelanggan di cabang sekarang. Pindahkan setelah dikembalikan, atau ubah booking-nya dulu.',
-        'done' => ':code dipindah ke :branch.',
+        'same_location' => 'Unit ini sudah di :location tersebut.',
+        'booked' => '{1} Unit ini masih punya :count booking pelanggan di :location sekarang. Pindahkan setelah dikembalikan, atau ubah booking-nya dulu.|[2,*] Unit ini masih punya :count booking pelanggan di :location sekarang. Pindahkan setelah dikembalikan, atau ubah booking-nya dulu.',
+        'done' => ':code dipindah ke :name.',
     ],
-    'branch' => ['has_units' => 'Cabang ini masih punya unit. Pindahkan atau hapus unitnya dulu.'],
+    'location' => ['has_units' => ':Location ini masih punya unit sewa. Pindahkan atau hapus unitnya dulu.'],
     'unit' => ['has_bookings' => 'Unit ini punya riwayat pesanan. Nonaktifkan atau tandai Pensiun saja.'],
     'block' => [
         'ends_before' => 'Tanggal selesai sebelum tanggal mulai.',
         'clash' => 'Unit ini sudah terpakai :from – :to.',
     ],
-    'line' => ':from – :to (:days hari) · Cabang :branch',
-    'line_one_day' => ':from (1 hari) · Cabang :branch',
+    'line' => ':from – :to (:days hari) · :Location :name',
+    'line_one_day' => ':from (1 hari) · :Location :name',
     'form' => [
         'package' => 'Jenis sewa',
         'regular' => 'Reguler',
@@ -38,10 +39,10 @@ return [
         'size' => 'Ukuran',
         'start' => 'Tanggal ambil',
         'end' => 'Tanggal kembali',
-        'branch' => 'Cabang',
+        'location' => ':Location',
         'choose' => 'Pilih tanggal untuk melihat ketersediaan.',
-        'available' => 'Tersedia di :branch',
-        'unavailable' => 'Tidak tersedia di :branch pada tanggal ini',
+        'available' => 'Tersedia di :name',
+        'unavailable' => 'Tidak tersedia di :name pada tanggal ini',
         'price' => ':days hari: :price',
         'add' => 'Tambah ke keranjang',
         'buy_now' => 'Sewa sekarang',
@@ -61,8 +62,8 @@ return [
         'timeline_dates' => 'Tanggal sewa diubah dari :old ke :new (unit :unit)',
     ],
     'order' => [
-        'branches' => '{1} Ambil dan kembalikan di cabang|[2,*] Ambil dan kembalikan di cabang-cabang',
-        'whatsapp' => 'Chat cabang via WhatsApp',
+        'locations' => '{1} Ambil dan kembalikan di|[2,*] Ambil dan kembalikan di',
+        'whatsapp' => 'Chat :location via WhatsApp',
         'whatsapp_text' => 'Halo, saya mau tanya soal pesanan sewa :number.',
     ],
 ];

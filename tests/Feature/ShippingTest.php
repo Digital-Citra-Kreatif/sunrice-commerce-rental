@@ -10,10 +10,10 @@ use Sunrice\CommerceRental\Models\Unit;
 
 beforeEach(function () {
     $this->variant = rentalStore();
-    branch('JKT')->forceFill(['address' => 'Jl. Senopati 10', 'postal_code' => '12190', 'latitude' => -6.2297, 'longitude' => 106.8090, 'phone' => '0217000001'])->save();
+    location('JKT')->forceFill(['address' => 'Jl. Senopati 10', 'postal_code' => '12190', 'latitude' => -6.2297, 'longitude' => 106.8090, 'phone' => '0217000001'])->save();
 });
 
-it('quotes deliveries from the branch that has the dress', function () {
+it('quotes deliveries from the location that has the dress', function () {
     app(StoreSettings::class)->saveSection('general', ['name' => 'UPLOVE']);
     $cart = rentalCart($this->variant, period(5));
     $state = CartView::for($cart, CheckoutData::fromCart($cart)->merge(checkoutInput())->context())->state;
@@ -25,17 +25,17 @@ it('quotes deliveries from the branch that has the dress', function () {
         ->and((float) $origin->get('latitude'))->toBe(-6.2297);
 });
 
-it('keeps the branch on a delivered order, for the courier booking', function () {
+it('keeps the location on a delivered order, for the courier booking', function () {
     $order = placeRental(rentalCart($this->variant, period(5)))->fresh();
 
     expect($order->shippingOrigin()->get('line1'))->toBe('Jl. Senopati 10')
         ->and($order->shippingOrigin()->get('postal_code'))->toBe('12190');
 });
 
-it('refuses to deliver dresses from two branches in one order', function () {
-    Unit::query()->create(['variant_id' => $this->variant->id, 'branch_id' => branch('BDG')->id, 'code' => 'BDG-GM-0001']);
+it('refuses to deliver dresses from two locations in one order', function () {
+    Unit::query()->create(['variant_id' => $this->variant->id, 'location_id' => location('BDG')->id, 'code' => 'BDG-GM-0001']);
     $cart = rentalCart($this->variant, period(5));
-    $cart->items()->create(['variant_id' => $this->variant->id, 'quantity' => 1, 'meta' => period(5, branch: 'BDG')->toMeta()]);
+    $cart->items()->create(['variant_id' => $this->variant->id, 'quantity' => 1, 'meta' => period(5, location: 'BDG')->toMeta()]);
 
-    submitCheckout($cart)->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.one_branch'));
+    submitCheckout($cart)->assertSessionHas('commerce.error', __('commerce-multi-locations::locations.errors.one_location'));
 });

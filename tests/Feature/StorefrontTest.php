@@ -10,10 +10,11 @@ use Sunrice\Commerce\Catalog\Models\Variant;
 use Sunrice\Commerce\Catalog\ProductQuery;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\Models\Unit;
+use Sunrice\CommerceRental\Wording;
 
 beforeEach(function () {
     $this->variant = rentalStore(jakartaUnits: 1);
-    $this->jkt = branch('JKT');
+    $this->jkt = location('JKT');
 });
 
 function addRental(array $input)
@@ -26,7 +27,7 @@ it('shows the booking form on a rental product page', function () {
         ->assertSee('data-commerce-rental', false)
         ->assertSee(__('commerce-rental::rental.form.title'))
         ->assertSee('Jakarta')
-        ->assertDontSee('<option value="'.branch('BDG')->id.'"', false); // Bandung has no unit of it
+        ->assertDontSee('<option value="'.location('BDG')->id.'"', false); // Bandung has no unit of it
 });
 
 it('renders the booking form as a component for themes', function () {
@@ -35,10 +36,10 @@ it('renders the booking form as a component for themes', function () {
     expect($html)->toContain('data-commerce-rental')->toContain('name="start"');
 });
 
-it('adds a rental to the cart with its dates and branch, shown under the line', function () {
+it('adds a rental to the cart with its dates and location, shown under the line', function () {
     $p = period(5);
 
-    addRental(['variant' => $this->variant->id, 'branch' => $this->jkt->id, 'start' => $p->start->toDateString(), 'end' => $p->end->toDateString()])
+    addRental(['variant' => $this->variant->id, 'location' => $this->jkt->id, 'start' => $p->start->toDateString(), 'end' => $p->end->toDateString()])
         ->assertRedirect('/products/gaun-merah')->assertSessionHas('commerce.success');
 
     $item = CartItem::query()->sole();
@@ -46,12 +47,12 @@ it('adds a rental to the cart with its dates and branch, shown under the line', 
 
     $cart = Cart::query()->sole();
     $this->withCookie('commerce_cart', $cart->token)->get('/cart')->assertOk()
-        ->assertSee('Cabang Jakarta')->assertSee('3 hari')->assertSee('450.000');
+        ->assertSee('Lokasi Jakarta')->assertSee('3 hari')->assertSee('450.000');
 });
 
 it('puts the same dress on other dates on its own line', function () {
     foreach ([period(5), period(20)] as $p) {
-        addRental(['variant' => $this->variant->id, 'branch' => $this->jkt->id, 'start' => $p->start->toDateString(), 'end' => $p->end->toDateString()]);
+        addRental(['variant' => $this->variant->id, 'location' => $this->jkt->id, 'start' => $p->start->toDateString(), 'end' => $p->end->toDateString()]);
         $this->withCookie('commerce_cart', Cart::query()->value('token'));
     }
 
@@ -62,24 +63,24 @@ it('refuses dates that are taken or out of the limits', function () {
     $taken = period(5);
     Booking::query()->create(['unit_id' => Unit::query()->value('id'), 'kind' => Booking::BLOCK, 'starts_on' => $taken->start, 'ends_on' => $taken->end, 'status' => Booking::ACTIVE]);
 
-    addRental(['variant' => $this->variant->id, 'branch' => $this->jkt->id, 'start' => $taken->start->toDateString(), 'end' => $taken->end->toDateString()])
-        ->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.unavailable'));
-    addRental(['variant' => $this->variant->id, 'branch' => $this->jkt->id, 'start' => now()->subDay()->toDateString(), 'end' => now()->toDateString()])
+    addRental(['variant' => $this->variant->id, 'location' => $this->jkt->id, 'start' => $taken->start->toDateString(), 'end' => $taken->end->toDateString()])
+        ->assertSessionHas('commerce.error', Wording::trans('commerce-rental::rental.errors.unavailable'));
+    addRental(['variant' => $this->variant->id, 'location' => $this->jkt->id, 'start' => now()->subDay()->toDateString(), 'end' => now()->toDateString()])
         ->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.past'));
-    addRental(['variant' => $this->variant->id, 'branch' => branch('BDG')->id, 'start' => period(30)->start->toDateString(), 'end' => period(30)->end->toDateString()])
-        ->assertSessionHas('commerce.error', __('commerce-rental::rental.errors.unavailable'));
+    addRental(['variant' => $this->variant->id, 'location' => location('BDG')->id, 'start' => period(30)->start->toDateString(), 'end' => period(30)->end->toDateString()])
+        ->assertSessionHas('commerce.error', Wording::trans('commerce-rental::rental.errors.unavailable'));
 
     expect(CartItem::query()->count())->toBe(0);
 });
 
-it('answers what is free at each branch, and on each day of a month', function () {
+it('answers what is free at each location, and on each day of a month', function () {
     $p = period(5);
     $this->getJson("/rental/availability?variant={$this->variant->id}&start={$p->start->toDateString()}&end={$p->end->toDateString()}")
-        ->assertOk()->assertJson(['days' => 3, 'price' => 450000, 'message' => null, 'branches' => [['id' => $this->jkt->id, 'name' => 'Jakarta', 'available' => 1]]]);
+        ->assertOk()->assertJson(['days' => 3, 'price' => 450000, 'message' => null, 'locations' => [['id' => $this->jkt->id, 'name' => 'Jakarta', 'available' => 1]]]);
 
     placeRental(rentalCart($this->variant, $p));
     $this->getJson("/rental/availability?variant={$this->variant->id}&start={$p->start->toDateString()}&end={$p->end->toDateString()}")
-        ->assertJson(['branches' => [['available' => 0]]]);
+        ->assertJson(['locations' => [['available' => 0]], 'branches' => [['available' => 0]]]); // branches: for themes from before locations
 
     $month = $p->start->format('Y-m');
     $days = $this->getJson("/rental/availability?variant={$this->variant->id}&branch={$this->jkt->id}&month={$month}")->assertOk()->json('days');
@@ -94,15 +95,15 @@ it('answers what is free at each branch, and on each day of a month', function (
 it('shows the rental on the order page', function () {
     $order = placeRental(rentalCart($this->variant, period(5)));
 
-    $this->get($order->url())->assertOk()->assertSee('Cabang Jakarta')
-        ->assertSee('https://wa.me/6281100000001', false)->assertSee(__('commerce-rental::rental.order.whatsapp'));
+    $this->get($order->url())->assertOk()->assertSee('Lokasi Jakarta')
+        ->assertSee('https://wa.me/6281100000001', false)->assertSee(Wording::trans('commerce-rental::rental.order.whatsapp'));
     expect($order->items->sole()->details()[0])->toContain('3 hari');
 });
 
-it('filters the catalog to dresses free on some days, at a branch', function () {
+it('filters the catalog to dresses free on some days, at a location', function () {
     publishDress('Gaun Biru', [['id' => 'gb-s', 'sku' => 'GB-S', 'price' => 100000, 'track_stock' => false]]);
     $blue = Variant::query()->where('sku', 'GB-S')->firstOrFail();
-    Unit::query()->create(['variant_id' => $blue->id, 'branch_id' => branch('BDG')->id, 'code' => 'BDG-GB-0001']);
+    Unit::query()->create(['variant_id' => $blue->id, 'location_id' => location('BDG')->id, 'code' => 'BDG-GB-0001']);
     placeRental(rentalCart($this->variant, period(5)));
     $count = fn (array $q) => ProductQuery::fromRequest(Request::create('/products', 'GET', $q))->count();
     $p = period(5);

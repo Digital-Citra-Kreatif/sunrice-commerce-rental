@@ -10,12 +10,13 @@ use Sunrice\Commerce\Analytics\ProductTitles;
 use Sunrice\Commerce\Analytics\Reports\Report;
 use Sunrice\Commerce\Analytics\Reports\ReportResult;
 use Sunrice\Commerce\Catalog\Models\Variant;
+use Sunrice\CommerceMultiLocations\Locations;
 use Sunrice\CommerceRental\Models\Booking;
-use Sunrice\CommerceRental\Models\Branch;
 use Sunrice\CommerceRental\Models\Unit;
+use Sunrice\CommerceRental\Wording;
 
 /**
- * Shop → Reports → Rentals: for each dress (variant) at each branch, how
+ * Shop → Reports → Rentals: for each dress (variant) at each location, how
  * many days its units were out with customers in the period, as a share
  * of the days they could have been, the rentals that started then and the
  * late returns. Units in repair or retired count as not rentable.
@@ -34,7 +35,7 @@ class UtilizationReport extends Report
 
     public function description(): string
     {
-        return 'Days each dress was rented out at each branch, against the days its units could have been. Rest days and blocked dates count as not rented.';
+        return 'Days each dress was rented out at each location, against the days its units could have been. Rest days and blocked dates count as not rented.';
     }
 
     public function feature(): ?string
@@ -48,22 +49,22 @@ class UtilizationReport extends Report
         $to = CarbonImmutable::parse($period->to)->startOfDay();
         $days = (int) $from->diffInDays($to) + 1;
 
-        $units = Unit::query()->where('active', true)->where('condition', 'good')->get(['id', 'variant_id', 'branch_id']);
+        $units = Unit::query()->where('active', true)->where('condition', 'good')->get(['id', 'variant_id', 'location_id']);
         $bookings = Booking::query()->where('kind', Booking::ORDER)->where('status', Booking::ACTIVE)
             ->whereDate('starts_on', '<=', $to->toDateString())->whereDate('ends_on', '>=', $from->toDateString())
-            ->with('unit:id,variant_id,branch_id')->get(['id', 'unit_id', 'starts_on', 'ends_on', 'picked_up_at', 'returned_at']);
+            ->with('unit:id,variant_id,location_id')->get(['id', 'unit_id', 'starts_on', 'ends_on', 'picked_up_at', 'returned_at']);
 
         $groups = [];
         foreach ($units as $unit) {
-            $groups["{$unit->variant_id}:{$unit->branch_id}"] ??= ['variant' => $unit->variant_id, 'branch' => $unit->branch_id, 'units' => 0, 'rented' => 0, 'rentals' => 0, 'late' => 0];
-            $groups["{$unit->variant_id}:{$unit->branch_id}"]['units']++;
+            $groups["{$unit->variant_id}:{$unit->location_id}"] ??= ['variant' => $unit->variant_id, 'location' => $unit->location_id, 'units' => 0, 'rented' => 0, 'rentals' => 0, 'late' => 0];
+            $groups["{$unit->variant_id}:{$unit->location_id}"]['units']++;
         }
         foreach ($bookings as $booking) {
             if ($booking->unit === null) {
                 continue;
             }
-            $key = "{$booking->unit->variant_id}:{$booking->unit->branch_id}";
-            $groups[$key] ??= ['variant' => $booking->unit->variant_id, 'branch' => $booking->unit->branch_id, 'units' => 0, 'rented' => 0, 'rentals' => 0, 'late' => 0];
+            $key = "{$booking->unit->variant_id}:{$booking->unit->location_id}";
+            $groups[$key] ??= ['variant' => $booking->unit->variant_id, 'location' => $booking->unit->location_id, 'units' => 0, 'rented' => 0, 'rentals' => 0, 'late' => 0];
             $start = CarbonImmutable::instance($booking->starts_on)->max($from);
             $end = CarbonImmutable::instance($booking->ends_on)->min($to);
             $groups[$key]['rented'] += (int) $start->diffInDays($end) + 1;
@@ -74,7 +75,7 @@ class UtilizationReport extends Report
 
         $variants = Variant::withTrashed()->whereIn('id', array_unique(array_column($groups, 'variant')))->get(['id', 'product_id', 'sku', 'title'])->keyBy('id');
         $titles = ProductTitles::for($variants->pluck('product_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
-        $branches = Branch::query()->pluck('name', 'id');
+        $names = app(Locations::class)->all()->pluck('name', 'id');
         $rows = [];
         foreach ($groups as $g) {
             $variant = $variants[$g['variant']] ?? null;
@@ -82,7 +83,7 @@ class UtilizationReport extends Report
             $rows[] = [
                 'product' => $variant !== null ? ($titles[(int) $variant->product_id]['title'] ?? "Product #{$variant->product_id}") : "Variant #{$g['variant']}",
                 'variant' => (string) ($variant->title ?? ''), 'sku' => (string) ($variant->sku ?? ''),
-                'branch' => (string) ($branches[$g['branch']] ?? ''), 'units' => $g['units'], 'rentals' => $g['rentals'], 'rented' => $g['rented'],
+                'location' => (string) ($names[$g['location']] ?? ''), 'units' => $g['units'], 'rentals' => $g['rentals'], 'rented' => $g['rented'],
                 'utilization' => $capacity > 0 ? round(min(100, $g['rented'] / $capacity * 100), 1) : null, 'late' => $g['late'],
             ];
         }
@@ -91,7 +92,7 @@ class UtilizationReport extends Report
         $rentedTotal = array_sum(array_column($rows, 'rented'));
 
         return new ReportResult(
-            columns: [self::column('product', 'Product'), self::column('variant', 'Size'), self::column('sku', 'SKU'), self::column('branch', 'Branch'),
+            columns: [self::column('product', 'Product'), self::column('variant', 'Size'), self::column('sku', 'SKU'), self::column('location', Wording::label()),
                 self::column('units', 'Units', 'count'), self::column('rentals', 'Rentals started', 'count'), self::column('rented', 'Days rented', 'count'),
                 self::column('utilization', 'Utilization %', 'percent'), self::column('late', 'Late returns', 'count')],
             rows: $rows,

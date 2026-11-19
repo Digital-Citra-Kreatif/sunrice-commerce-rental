@@ -12,6 +12,7 @@ use Spatie\OneTimePasswords\OneTimePasswordsServiceProvider;
 use Sunrice\Admin\AdminServiceProvider;
 use Sunrice\Cms\CmsServiceProvider;
 use Sunrice\Commerce\CommerceServiceProvider;
+use Sunrice\CommerceMultiLocations\MultiLocationsServiceProvider;
 use Sunrice\CommerceRental\RentalServiceProvider;
 use Workbench\App\Models\User;
 use Workbench\App\Providers\AdminPanelProvider;
@@ -44,6 +45,7 @@ abstract class ConcurrencyTestCase extends Orchestra
             OneTimePasswordsServiceProvider::class,
             SocialiteServiceProvider::class,
             CommerceServiceProvider::class,
+            MultiLocationsServiceProvider::class,
             RentalServiceProvider::class,
             AdminPanelProvider::class,
         ];

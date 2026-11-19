@@ -25,7 +25,7 @@ it('refuses less than 4 days', function () {
 it('rents the out-of-town package for 7 days at 50.000 more, and names it under the line', function () {
     $start = period(5)->start->toDateString();
 
-    $this->from('/products/gaun-merah')->post('/rental/cart', ['variant' => $this->variant->id, 'branch' => branch('JKT')->id, 'start' => $start, 'package' => 'luar-kota'])
+    $this->from('/products/gaun-merah')->post('/rental/cart', ['variant' => $this->variant->id, 'location' => location('JKT')->id, 'start' => $start, 'package' => 'luar-kota'])
         ->assertSessionHas('commerce.success');
     $item = CartItem::query()->sole();
     expect($item->meta['rental'])->toMatchArray(['start' => $start, 'end' => period(5, days: 7)->end->toDateString(), 'package' => 'luar-kota']);
