@@ -15,6 +15,6 @@ return [
         'intro' => 'Hi :name, please bring back the rental of order :number by:',
         'action' => 'View your order',
     ],
-    'branch' => ':branch branch',
-    'whatsapp' => 'Branch WhatsApp: :number',
+    'location' => ':Location: :name',
+    'whatsapp' => ':Location WhatsApp: :number',
 ];

@@ -15,6 +15,6 @@ return [
         'intro' => 'Halo :name, mohon kembalikan dress sewaan pesanan :number paling lambat:',
         'action' => 'Lihat pesanan',
     ],
-    'branch' => 'Cabang :branch',
-    'whatsapp' => 'WhatsApp cabang: :number',
+    'location' => ':Location :name',
+    'whatsapp' => 'WhatsApp :location: :number',
 ];

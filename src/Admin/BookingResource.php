@@ -18,16 +18,17 @@ use Sunrice\Admin\Resources\Tables\Column;
 use Sunrice\Admin\Resources\Tables\Filter;
 use Sunrice\Admin\Resources\Tables\Table;
 use Sunrice\Commerce\Orders\Actor;
+use Sunrice\CommerceMultiLocations\Locations;
 use Sunrice\CommerceRental\Actions\ChangeDates;
 use Sunrice\CommerceRental\Actions\RecordPickup;
 use Sunrice\CommerceRental\Actions\RecordReturn;
 use Sunrice\CommerceRental\Models\Booking;
-use Sunrice\CommerceRental\Models\Branch;
 use Sunrice\CommerceRental\RentalException;
 use Sunrice\CommerceRental\RentalPeriod;
+use Sunrice\CommerceRental\Wording;
 
 /**
- * Rentals → Bookings: customers' rentals by day and branch, to hand over
+ * Rentals → Bookings: customers' rentals by day and location, to hand over
  * ("Picked up"), take back ("Returned", with how it came back) and move to
  * other days. Bookings come from orders: they're never created here.
  */
@@ -70,7 +71,7 @@ final class BookingResource extends Resource
     /** @return Builder<Model> */
     public static function query(): Builder
     {
-        return parent::query()->where('kind', Booking::ORDER)->where('status', Booking::ACTIVE)->with(['unit.branch', 'order']);
+        return parent::query()->where('kind', Booking::ORDER)->where('status', Booking::ACTIVE)->with(['unit.location', 'order']);
     }
 
     public static function can(Authorizable $user, string $ability, ?Model $record = null): bool
@@ -96,7 +97,7 @@ final class BookingResource extends Resource
                 Column::make('order.number')->label('Order'),
                 Column::make('order.customer_name')->label('Customer'),
                 Column::make('unit.code')->label('Unit'),
-                Column::make('branch')->label('Branch')->state(fn (Model $b) => $b instanceof Booking ? ($b->unit->branch->name ?? '') : ''),
+                Column::make('location')->label(Wording::label())->state(fn (Model $b) => $b instanceof Booking ? ($b->unit->location->name ?? '') : ''),
                 Column::make('starts_on')->label('Pickup')->date()->sortable(),
                 Column::make('ends_on')->label('Return')->date()->sortable(),
                 Column::make('stage')->label('Status')->badge()->state(fn (Model $b) => $b instanceof Booking ? self::STAGES[$b->stage()] : ''),
@@ -110,8 +111,8 @@ final class BookingResource extends Resource
                     'late' => $q->whereNotNull('picked_up_at')->whereNull('returned_at')->whereDate('ends_on', '<', $today()),
                     default => $q->whereNotNull('returned_at'),
                 }),
-                Filter::make('branch')->label('Branch')->options(fn () => Branch::query()->orderBy('sort_order')->pluck('name', 'id')->all())
-                    ->query(fn (Builder $q, string $v) => $q->whereHas('unit', fn ($u) => $u->where('branch_id', (int) $v))),
+                Filter::make('location')->label(Wording::label())->options(fn () => app(Locations::class)->all()->pluck('name', 'id')->all())
+                    ->query(fn (Builder $q, string $v) => $q->whereHas('unit', fn ($u) => $u->where('location_id', (int) $v))),
                 Filter::dateRange('starts_on')->label('Pickup between'),
             ])
             ->actions([
@@ -140,7 +141,7 @@ final class BookingResource extends Resource
                     )
                     ->handle(function (Model $b, array $input): string {
                         $booking = self::booking($b);
-                        $period = RentalPeriod::make((string) $input['start'], (string) $input['end'], (int) ($booking->unit->branch_id ?? 0));
+                        $period = RentalPeriod::make((string) $input['start'], (string) $input['end'], (int) ($booking->unit->location_id ?? 0));
                         self::attempt(fn () => app(ChangeDates::class)->handle($booking, $period, Actor::admin()));
 
                         return __('commerce-rental::rental.ops.dates_changed');

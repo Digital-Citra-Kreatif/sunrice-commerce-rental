@@ -45,12 +45,12 @@ it('does not remind an unpaid order of its pickup', function () {
     expect(Booking::query()->where('order_id', $order->id)->value('pickup_reminded_at'))->toBeNull();
 });
 
-it('renders the reminder with the rental and its branch', function () {
+it('renders the reminder with the rental and its location', function () {
     $order = placeRental(rentalCart($this->variant, period(1)));
     app(RecordPaymentResult::class)->handle($order->payments->sole(), PaymentResult::paid($order->total));
-    $booking = Booking::query()->with('unit.branch', 'order.items')->where('order_id', $order->id)->sole();
+    $booking = Booking::query()->with('unit.location', 'order.items')->where('order_id', $order->id)->sole();
 
     $html = (string) (new StoreEmail(Reminders::PICKUP, $order->fresh(), $order->customer, null, ['bookings' => [$booking]], 'id'))->toMail(new AnonymousNotifiable)->render();
 
-    expect($html)->toContain('Gaun Merah')->toContain('Cabang Jakarta')->toContain('6281100000001')->toContain('Waktunya ambil dress');
+    expect($html)->toContain('Gaun Merah')->toContain('Lokasi Jakarta')->toContain('6281100000001')->toContain('Waktunya ambil dress');
 });

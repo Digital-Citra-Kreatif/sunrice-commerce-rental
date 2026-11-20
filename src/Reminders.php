@@ -42,7 +42,7 @@ class Reminders
         $today = CarbonImmutable::today();
         $bookings = Booking::query()->where('kind', Booking::ORDER)->where('status', Booking::ACTIVE)->whereNull($flag)
             ->whereDate($column, '>=', $today->toDateString())->whereDate($column, '<=', $today->addDays($days)->toDateString())
-            ->tap($scope)->with('unit.branch')->orderBy($column)->limit(500)->get();
+            ->tap($scope)->with('unit.location')->orderBy($column)->limit(500)->get();
         $sent = 0;
         /** @var Collection<int, Booking> $group */
         foreach ($bookings->groupBy('order_id') as $orderId => $group) {

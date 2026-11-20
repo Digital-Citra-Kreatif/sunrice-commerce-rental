@@ -12,11 +12,11 @@ use Sunrice\Commerce\Pricing\CalculationState;
 use Sunrice\Commerce\Pricing\Contracts\DiscountProvider;
 use Sunrice\Commerce\Pricing\Contracts\ReservesDiscounts;
 use Sunrice\CommerceRental\Availability;
-use Sunrice\CommerceRental\Branches;
 use Sunrice\CommerceRental\Buffers;
 use Sunrice\CommerceRental\Models\Booking;
 use Sunrice\CommerceRental\RentalPeriod;
 use Sunrice\CommerceRental\RentalRules;
+use Sunrice\CommerceRental\Wording;
 
 /**
  * Books the units of an order's rental lines inside PlaceOrder's
@@ -36,10 +36,6 @@ class RentalReservations implements DiscountProvider, ReservesDiscounts
 
     public function commit(Order $order, CalculationState $state): void
     {
-        // A delivery leaves from one branch: dresses from several can be picked up, not sent together.
-        if ($order->shipping_address !== null && count(app(Branches::class)->idsOfCart($state)) > 1) {
-            throw new CheckoutRefused(__('commerce-rental::rental.errors.one_branch'));
-        }
         $lines = array_values($state->lines);
         // A stable lock order (by variant) so two orders never wait on each other.
         usort($lines, fn (CalcLine $a, CalcLine $b) => $a->variant->id <=> $b->variant->id);
@@ -49,7 +45,7 @@ class RentalReservations implements DiscountProvider, ReservesDiscounts
             $period = RentalPeriod::fromMeta($line->meta);
             if ($period === null) {
                 if ($this->availability->isRental($line->variant)) {
-                    throw new CheckoutRefused(__('commerce-rental::rental.errors.dates_missing'));
+                    throw new CheckoutRefused(Wording::trans('commerce-rental::rental.errors.dates_missing'));
                 }
 
                 continue;
@@ -59,7 +55,7 @@ class RentalReservations implements DiscountProvider, ReservesDiscounts
             $buffer = $this->buffers->forVariant($line->variant);
             $units = $this->availability->freeUnits($line->variant, $period, lock: true, buffer: $buffer)->take($line->quantity);
             if ($units->count() < $line->quantity) {
-                throw new CheckoutRefused(__('commerce-rental::rental.errors.unavailable'));
+                throw new CheckoutRefused(Wording::trans('commerce-rental::rental.errors.unavailable'));
             }
 
             $item = $this->item($items->all(), $line);

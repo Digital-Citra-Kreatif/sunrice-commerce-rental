@@ -20,7 +20,7 @@ use Sunrice\Commerce\Regions\RegionImporter;
 use Sunrice\Commerce\Settings\StoreSettings;
 use Sunrice\Commerce\Shipping\Models\ShippingMethod;
 use Sunrice\Commerce\Shipping\Models\ShippingZone;
-use Sunrice\CommerceRental\Models\Branch;
+use Sunrice\CommerceMultiLocations\Models\Location;
 use Sunrice\CommerceRental\Models\Unit;
 use Sunrice\CommerceRental\RentalPeriod;
 use Sunrice\CommerceRental\Tests\TestCase;
@@ -53,10 +53,11 @@ function rentalStore(int $jakartaUnits = 2): Variant
     app()->forgetScopedInstances();
 
     $variant = Variant::query()->where('sku', 'GM-S')->firstOrFail();
-    $jakarta = Branch::query()->create(['code' => 'JKT', 'name' => 'Jakarta', 'whatsapp' => '6281100000001']);
-    Branch::query()->create(['code' => 'BDG', 'name' => 'Bandung', 'whatsapp' => '6281100000002']);
+    $jakarta = Location::query()->create(['code' => 'JKT', 'name' => 'Jakarta', 'whatsapp' => '6281100000001', 'pickup' => true]);
+    Location::query()->create(['code' => 'BDG', 'name' => 'Bandung', 'whatsapp' => '6281100000002', 'pickup' => true, 'sort_order' => 1]);
+    app()->forgetScopedInstances();
     for ($i = 1; $i <= $jakartaUnits; $i++) {
-        Unit::query()->create(['variant_id' => $variant->id, 'branch_id' => $jakarta->id, 'code' => sprintf('JKT-GM-%04d', $i)]);
+        Unit::query()->create(['variant_id' => $variant->id, 'location_id' => $jakarta->id, 'code' => sprintf('JKT-GM-%04d', $i)]);
     }
 
     return $variant;
@@ -75,17 +76,17 @@ function publishDress(string $title, array $variants): void
     app(PublishEntry::class)->handle($translation->fresh());
 }
 
-function branch(string $code): Branch
+function location(string $code): Location
 {
-    return Branch::query()->where('code', $code)->firstOrFail();
+    return Location::query()->where('code', $code)->firstOrFail();
 }
 
-/** A rental period starting $inDays from today for $days days, at a branch. */
-function period(int $inDays, int $days = 3, string $branch = 'JKT'): RentalPeriod
+/** A rental period starting $inDays from today for $days days, at a location. */
+function period(int $inDays, int $days = 3, string $location = 'JKT'): RentalPeriod
 {
     $start = now()->startOfDay()->addDays($inDays);
 
-    return RentalPeriod::make($start->toDateString(), $start->copy()->addDays($days - 1)->toDateString(), branch($branch)->id);
+    return RentalPeriod::make($start->toDateString(), $start->copy()->addDays($days - 1)->toDateString(), location($location)->id);
 }
 
 /** A guest cart with one rental line, sent as the visitor's cookie. */

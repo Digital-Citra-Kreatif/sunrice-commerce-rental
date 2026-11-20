@@ -22,9 +22,9 @@ it('creates new units and updates existing ones without moving them', function (
     $this->artisan('rental:import-units', ['file' => $file])->assertSuccessful();
 
     expect(Unit::query()->count())->toBe(3)
-        ->and(Unit::query()->where('code', 'JKT-GM-0001')->first()->only(['branch_id', 'condition', 'note']))
-        ->toBe(['branch_id' => branch('JKT')->id, 'condition' => 'repair', 'note' => 'Jahitan lepas'])
-        ->and(Unit::query()->where('code', 'BDG-GM-0001')->value('branch_id'))->toBe(branch('BDG')->id)
+        ->and(Unit::query()->where('code', 'JKT-GM-0001')->first()->only(['location_id', 'condition', 'note']))
+        ->toBe(['location_id' => location('JKT')->id, 'condition' => 'repair', 'note' => 'Jahitan lepas'])
+        ->and(Unit::query()->where('code', 'BDG-GM-0001')->value('location_id'))->toBe(location('BDG')->id)
         ->and(Unit::query()->where('code', 'BDG-GM-0002')->value('active'))->toBeFalse();
 });
 
@@ -42,7 +42,7 @@ it('writes nothing when a row is wrong, and says which', function () {
 });
 
 it('says what a dry run would do', function () {
-    $file = unitsCsv("code,sku,branch\nJKT-GM-0001,GM-S,JKT\nJKT-GM-0002,GM-S,JKT\n");
+    $file = unitsCsv("code,sku,location\nJKT-GM-0001,GM-S,JKT\nJKT-GM-0002,GM-S,JKT\n");
 
     $this->artisan('rental:import-units', ['file' => $file, '--dry-run' => true])->expectsOutputToContain('Would create 1, would update 1')->assertSuccessful();
     expect(Unit::query()->count())->toBe(1);

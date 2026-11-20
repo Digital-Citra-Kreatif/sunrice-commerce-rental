@@ -10,15 +10,17 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Sunrice\Commerce\Analytics\ProductTitles;
 use Sunrice\Commerce\Catalog\Models\Variant;
+use Sunrice\CommerceMultiLocations\Locations;
+use Sunrice\CommerceMultiLocations\Models\Location;
 use Sunrice\CommerceRental\Admin\BookingResource;
 use Sunrice\CommerceRental\Models\Booking;
-use Sunrice\CommerceRental\Models\Branch;
 use Sunrice\CommerceRental\Models\Unit;
 
 /**
- * Rentals → Calendar: a branch's units down the side, days across, each
+ * Rentals → Calendar: a location's units down the side, days across, each
  * booking, block and the rest days after them drawn on its unit's row.
- * 60 units a page; search by unit code, SKU or variant.
+ * 60 units a page; search by unit code, SKU or variant. (The page's props
+ * keep the names `branches` and `filters.branch` it was built with.)
  */
 class CalendarController
 {
@@ -30,15 +32,15 @@ class CalendarController
             'branch' => ['nullable', 'integer'], 'from' => ['nullable', 'date_format:Y-m-d'], 'days' => ['nullable', 'integer', 'in:7,14,28'],
             'search' => ['nullable', 'string', 'max:60'], 'page' => ['nullable', 'integer', 'min:1'],
         ]);
-        $branches = Branch::query()->orderBy('sort_order')->orderBy('id')->get(['id', 'name']);
-        $branchId = (int) ($data['branch'] ?? $branches->first()->id ?? 0);
+        $locations = app(Locations::class)->all();
+        $locationId = (int) ($data['branch'] ?? $locations->first()->id ?? 0);
         $days = (int) ($data['days'] ?? 14);
         $from = isset($data['from']) ? CarbonImmutable::parse($data['from']) : CarbonImmutable::today();
         $to = $from->addDays($days - 1);
         $search = trim((string) ($data['search'] ?? ''));
         $page = (int) ($data['page'] ?? 1);
 
-        $query = Unit::query()->where('branch_id', $branchId)
+        $query = Unit::query()->where('location_id', $locationId)
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('code', 'like', "%{$search}%")
                 ->orWhereIn('variant_id', Variant::query()->where('sku', 'like', "%{$search}%")->orWhere('title', 'like', "%{$search}%")->select('id'))));
         $total = (clone $query)->count();
@@ -50,8 +52,8 @@ class CalendarController
             ->with('order:id,number,customer_name')->orderBy('starts_on')->get()->groupBy('unit_id');
 
         return Inertia::render('Rental/Calendar', [
-            'branches' => $branches->map(fn (Branch $b) => ['id' => $b->id, 'name' => $b->name])->values(),
-            'filters' => ['branch' => $branchId, 'from' => $from->toDateString(), 'days' => $days, 'search' => $search, 'page' => $page],
+            'branches' => $locations->map(fn (Location $l) => ['id' => $l->id, 'name' => $l->name])->values(),
+            'filters' => ['branch' => $locationId, 'from' => $from->toDateString(), 'days' => $days, 'search' => $search, 'page' => $page],
             'dates' => collect(range(0, $days - 1))->map(fn (int $i) => $from->addDays($i)->toDateString())->all(),
             'today' => CarbonImmutable::today()->toDateString(),
             'total' => $total,

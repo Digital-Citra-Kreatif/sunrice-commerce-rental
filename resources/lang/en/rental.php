@@ -3,12 +3,13 @@
 declare(strict_types=1);
 
 return [
+    // What the places dresses are picked up at are called (config commerce-rental.location_term can change it).
+    'term' => 'location',
     'errors' => [
-        'one_branch' => 'For delivery, all dresses in an order must come from the same branch. Place separate orders, or pick them up at the branches.',
         'package' => 'This rental package is no longer offered.',
         'package_days' => 'This package is for :days days.',
-        'dates_missing' => 'Choose the rental dates and branch for every dress.',
-        'unavailable' => 'Sorry, this dress is already booked on those dates. Please choose other dates or another branch.',
+        'dates_missing' => 'Choose the rental dates and :location for every dress.',
+        'unavailable' => 'Sorry, this dress is already booked on those dates. Please choose other dates or another :location.',
         'past' => 'The rental date has passed.',
         'too_long' => 'A rental can last at most :days days.',
         'too_far' => 'The rental date is too far ahead.',
@@ -17,18 +18,18 @@ return [
     ],
     'deposit' => 'Deposit now',
     'move' => [
-        'same_branch' => 'The unit is already at that branch.',
-        'booked' => '{1} The unit has :count customer booking at its branch. Move it once it is returned, or change the booking first.|[2,*] The unit has :count customer bookings at its branch. Move it once they are returned, or change the bookings first.',
-        'done' => ':code moved to :branch.',
+        'same_location' => 'The unit is already at that :location.',
+        'booked' => '{1} The unit has :count customer booking at its :location. Move it once it is returned, or change the booking first.|[2,*] The unit has :count customer bookings at its :location. Move it once they are returned, or change the bookings first.',
+        'done' => ':code moved to :name.',
     ],
-    'branch' => ['has_units' => 'The branch still has units. Move or delete them first.'],
+    'location' => ['has_units' => 'The :location still has rental units. Move or delete them first.'],
     'unit' => ['has_bookings' => 'The unit has orders. Make it inactive or retired instead.'],
     'block' => [
         'ends_before' => 'The end date is before the start.',
         'clash' => 'The unit is taken :from – :to.',
     ],
-    'line' => ':from – :to (:days days) · :branch branch',
-    'line_one_day' => ':from (1 day) · :branch branch',
+    'line' => ':from – :to (:days days) · :Location: :name',
+    'line_one_day' => ':from (1 day) · :Location: :name',
     'form' => [
         'package' => 'Rental',
         'regular' => 'Regular',
@@ -38,10 +39,10 @@ return [
         'size' => 'Size',
         'start' => 'Pickup day',
         'end' => 'Return day',
-        'branch' => 'Branch',
+        'location' => ':Location',
         'choose' => 'Choose dates to see what is free.',
-        'available' => 'Available at :branch',
-        'unavailable' => 'Not available at :branch on these dates',
+        'available' => 'Available at :name',
+        'unavailable' => 'Not available at :name on these dates',
         'price' => ':days days: :price',
         'add' => 'Add to cart',
         'buy_now' => 'Rent now',
@@ -61,8 +62,8 @@ return [
         'timeline_dates' => 'Rental dates changed from :old to :new (unit :unit)',
     ],
     'order' => [
-        'branches' => '{1} Pick up and return at|[2,*] Pick up and return at',
-        'whatsapp' => 'Chat with the branch on WhatsApp',
+        'locations' => '{1} Pick up and return at|[2,*] Pick up and return at',
+        'whatsapp' => 'Chat with the :location on WhatsApp',
         'whatsapp_text' => 'Hi, I have a question about rental order :number.',
     ],
 ];

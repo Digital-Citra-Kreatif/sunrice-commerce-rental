@@ -1,5 +1,5 @@
 {{--
-    The booking form: size, pickup and return days, branch, the free units and the price, then
+    The booking form: size, pickup and return days, location, the free units and the price, then
     "Add to cart". Works without JavaScript (the dates are checked when added and again at
     checkout); with it, the availability line follows the choices.
     $form: Sunrice\CommerceRental\BookingForm. Themes may include it anywhere on the product page.
@@ -45,10 +45,10 @@
     </div>
 
     <label class="commerce-rental__field">
-        <span>{{ __('commerce-rental::rental.form.branch') }}</span>
-        <select name="branch" required data-rental-branch>
-            @foreach ($form->branches as $branch)
-                <option value="{{ $branch['id'] }}" @selected((int) old('branch') === $branch['id'])>{{ $branch['name'] }}</option>
+        <span>{{ \Sunrice\CommerceRental\Wording::trans('commerce-rental::rental.form.location') }}</span>
+        <select name="location" required data-rental-location>
+            @foreach ($form->locations as $location)
+                <option value="{{ $location['id'] }}" @selected((int) old('location') === $location['id'])>{{ $location['name'] }}</option>
             @endforeach
         </select>
     </label>
@@ -72,7 +72,7 @@
     function fill(text, values) { return text.replace(/:(\w+)/g, function (m, k) { return values[k] !== undefined ? values[k] : m; }); }
     document.querySelectorAll('[data-commerce-rental]').forEach(function (form) {
         var start = form.querySelector('[data-rental-start]'), end = form.querySelector('[data-rental-end]');
-        var branch = form.querySelector('[data-rental-branch]'), variant = form.querySelector('[data-rental-variant]');
+        var place = form.querySelector('[data-rental-location]'), variant = form.querySelector('[data-rental-variant]');
         var status = form.querySelector('[data-rental-status]'), submit = form.querySelector('[data-rental-submit]');
         var timer, last;
         function chosenPackage() { var p = form.querySelector('[data-rental-package]:checked'); return p ? p : null; }
@@ -87,15 +87,15 @@
             fetch(url, { headers: { Accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (data) {
                 if (url !== last) { return; }
                 if (data.message) { status.textContent = data.message; status.dataset.state = 'error'; return; }
-                var row = (data.branches || []).filter(function (b) { return String(b.id) === branch.value; })[0];
-                var name = branch.options[branch.selectedIndex].text;
+                var row = (data.locations || []).filter(function (l) { return String(l.id) === place.value; })[0];
+                var name = place.options[place.selectedIndex].text;
                 var ok = row && row.available > 0;
                 status.dataset.state = ok ? 'ok' : 'error';
-                status.textContent = (ok ? fill(t.available, { branch: name }) : fill(t.unavailable, { branch: name })) + ' · ' + fill(t.price, { days: data.days, price: data.price_formatted });
+                status.textContent = (ok ? fill(t.available, { name: name }) : fill(t.unavailable, { name: name })) + ' · ' + fill(t.price, { days: data.days, price: data.price_formatted });
                 if (submit) { submit.disabled = !ok; }
             }).catch(function () {});
         }
-        [start, end, branch, variant].concat(Array.prototype.slice.call(form.querySelectorAll('[data-rental-package]'))).forEach(function (el) { el && el.addEventListener('change', function () { clearTimeout(timer); timer = setTimeout(check, 150); }); });
+        [start, end, place, variant].concat(Array.prototype.slice.call(form.querySelectorAll('[data-rental-package]'))).forEach(function (el) { el && el.addEventListener('change', function () { clearTimeout(timer); timer = setTimeout(check, 150); }); });
         check();
     });
 })();

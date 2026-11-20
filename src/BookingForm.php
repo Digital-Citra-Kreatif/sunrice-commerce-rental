@@ -9,21 +9,20 @@ use Sunrice\Commerce\Catalog\Models\Product;
 use Sunrice\Commerce\Catalog\Models\Variant;
 use Sunrice\Commerce\Storefront\StorefrontRoutes;
 use Sunrice\Commerce\Support\MoneyFormatter;
-use Sunrice\CommerceRental\Models\Branch;
 use Sunrice\CommerceRental\Models\Unit;
 
-/** What the booking form (commerce-rental::booking) needs for a product: its rental sizes, the branches, the limits. */
+/** What the booking form (commerce-rental::booking) needs for a product: its rental sizes, the locations, the limits. */
 final class BookingForm
 {
     /**
      * @param  list<array{id: int, title: string, price: string}>  $variants
-     * @param  list<array{id: int, name: string}>  $branches
+     * @param  list<array{id: int, name: string}>  $locations
      * @param  list<array{key: string, name: string, days: int, fee: string}>  $packages
      */
     public function __construct(
         public readonly Product $product,
         public readonly array $variants,
-        public readonly array $branches,
+        public readonly array $locations,
         public readonly string $minDate,
         public readonly ?string $maxDate,
         public readonly int $minDays,
@@ -33,6 +32,21 @@ final class BookingForm
         public readonly array $packages = [],
         public readonly ?string $pricingNote = null,
     ) {}
+
+    /**
+     * $form->branches, as themes from before locations read it: the locations.
+     *
+     * @deprecated use $locations
+     */
+    public function __get(string $name): mixed
+    {
+        if ($name === 'branches') {
+            return $this->locations;
+        }
+        trigger_error('Undefined property: '.self::class.'::$'.$name, E_USER_WARNING);
+
+        return null;
+    }
 
     /** The form for the product of this entry, or null when it isn't rented out. */
     public static function forEntry(int $entryId): ?self
@@ -51,14 +65,12 @@ final class BookingForm
         }
         $rules = app(RentalRules::class);
         $money = app(MoneyFormatter::class);
-        $branches = Branch::query()->where('active', true)
-            ->whereHas('units', fn ($q) => $q->whereIn('variant_id', $variants->pluck('id'))->where('active', true))
-            ->orderBy('sort_order')->orderBy('id')->get(['id', 'name']);
+        $locations = app(Availability::class)->locationsWith($variants->pluck('id')->map(fn ($id) => (int) $id)->all());
 
         return new self(
             $product,
             $variants->map(fn (Variant $v) => ['id' => $v->id, 'title' => $v->title, 'price' => $money->format($v->price)])->values()->all(),
-            $branches->map(fn (Branch $b) => ['id' => $b->id, 'name' => $b->name])->values()->all(),
+            array_map(fn ($l) => ['id' => $l->id, 'name' => $l->name], $locations),
             $rules->earliest()->toDateString(),
             $rules->latest()?->toDateString(),
             $rules->minDays(),

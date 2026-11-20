@@ -9,18 +9,19 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Sunrice\Commerce\Catalog\Models\Product;
 use Sunrice\Commerce\Catalog\Models\Variant;
+use Sunrice\CommerceMultiLocations\Locations;
+use Sunrice\CommerceMultiLocations\Models\Location;
 use Sunrice\CommerceRental\Models\Booking;
-use Sunrice\CommerceRental\Models\Branch;
 use Sunrice\CommerceRental\Models\Unit;
 
-/** Which units of a variant are free for a period at a branch. */
+/** Which units of a variant are free for a period at a location. */
 class Availability
 {
     public function __construct(protected Buffers $buffers) {}
 
     /**
      * Free units, lowest id first. With $lock (inside a transaction) every
-     * active unit of the variant at the branch is locked first, so two
+     * active unit of the variant at the location is locked first, so two
      * checkouts for the same dress queue up instead of both seeing it free.
      *
      * @return Collection<int, Unit>
@@ -30,7 +31,7 @@ class Availability
         $buffer ??= $this->buffers->forVariant($variant);
         $units = Unit::query()
             ->where('variant_id', $variant->id)
-            ->where('branch_id', $period->branchId)
+            ->where('location_id', $period->locationId)
             ->where('active', true)
             ->where('condition', 'good')
             ->orderBy('id');
@@ -51,20 +52,32 @@ class Availability
     }
 
     /**
-     * Free units of the variant for these days at each active branch that has
-     * it, in the branches' order: [{branch, available}].
+     * Free units of the variant for these days at each active location that
+     * has it, in the locations' order: [{location, available}].
      *
-     * @return list<array{branch: Branch, available: int}>
+     * @return list<array{location: Location, available: int}>
      */
-    public function atBranches(Variant $variant, CarbonImmutable $start, CarbonImmutable $end): array
+    public function atLocations(Variant $variant, CarbonImmutable $start, CarbonImmutable $end): array
     {
         $out = [];
-        $branches = Branch::query()->where('active', true)->whereHas('units', fn ($q) => $q->where('variant_id', $variant->id))->orderBy('sort_order')->orderBy('id')->get();
-        foreach ($branches as $branch) {
-            $out[] = ['branch' => $branch, 'available' => $this->count($variant, new RentalPeriod($start, $end, $branch->id))];
+        foreach ($this->locationsWith([$variant->id]) as $location) {
+            $out[] = ['location' => $location, 'available' => $this->count($variant, new RentalPeriod($start, $end, $location->id))];
         }
 
         return $out;
+    }
+
+    /**
+     * The active locations with an active unit of these variants, in order.
+     *
+     * @param  list<int>  $variantIds
+     * @return list<Location>
+     */
+    public function locationsWith(array $variantIds): array
+    {
+        $ids = Unit::query()->whereIn('variant_id', $variantIds)->where('active', true)->distinct()->pluck('location_id')->map(fn ($id) => (int) $id)->all();
+
+        return app(Locations::class)->active()->filter(fn (Location $l) => in_array($l->id, $ids, true))->values()->all();
     }
 
     /**
@@ -74,10 +87,10 @@ class Availability
      *
      * @return array<string, int> Y-m-d => free units
      */
-    public function calendar(Variant $variant, int $branchId, CarbonImmutable $from, int $days): array
+    public function calendar(Variant $variant, int $locationId, CarbonImmutable $from, int $days): array
     {
         $buffer = $this->buffers->forVariant($variant);
-        $units = Unit::query()->where('variant_id', $variant->id)->where('branch_id', $branchId)->where('active', true)->where('condition', 'good')->pluck('id')->all();
+        $units = Unit::query()->where('variant_id', $variant->id)->where('location_id', $locationId)->where('active', true)->where('condition', 'good')->pluck('id')->all();
         $to = $from->addDays($days + $buffer + 1);
         $bookings = $units === [] ? collect() : Booking::query()->whereIn('unit_id', $units)->where('status', Booking::ACTIVE)
             ->whereDate('starts_on', '<', $to->toDateString())->whereDate('available_from', '>', $from->toDateString())
@@ -99,7 +112,7 @@ class Availability
 
     /**
      * Narrows a products query to those with a unit free for the whole period
-     * (at its branch, or at any when the period's branch is 0), with the
+     * (at its location, or at any when the period's location is 0), with the
      * store's default rest days: for listings ("available 10–12 Dec"); the
      * add to cart and the checkout check again with each product's own.
      *
@@ -110,7 +123,7 @@ class Availability
         $buffer = app(RentalSettings::class)->int('buffer_days');
         $products->whereHas('variants', fn ($variants) => $variants->where('active', true)->whereIn('id', Unit::query()
             ->where('active', true)->where('condition', 'good')
-            ->when($period->branchId > 0, fn ($q) => $q->where('branch_id', $period->branchId))
+            ->when($period->locationId > 0, fn ($q) => $q->where('location_id', $period->locationId))
             ->whereDoesntHave('bookings', fn ($q) => $q->overlapping($period, $buffer))
             ->select('variant_id')));
     }
