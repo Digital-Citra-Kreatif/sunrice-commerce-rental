@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0 (2026-11-21)
+
+Needs Sunrice Commerce 0.4 (`sunrice/commerce` `^0.4`) and Sunrice Commerce Multi-locations 0.1
+(`sunrice/commerce-multi-locations` `^0.1`), both from Packagist.
+
 ### Changed: branches are now the store's locations
 
 Rental branches move to `sunrice/commerce-multi-locations`: the places dresses are picked up at are

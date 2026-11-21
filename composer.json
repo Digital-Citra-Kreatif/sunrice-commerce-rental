@@ -10,29 +10,13 @@
         "rental",
         "booking"
     ],
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../sunrice-commerce",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../sunrice-commerce-multi-locations",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
     "require": {
         "php": "^8.4",
         "illuminate/contracts": "^13.0",
         "illuminate/support": "^13.0",
         "spatie/laravel-package-tools": "^1.93",
-        "sunrice/commerce": "^1.0 || dev-main",
-        "sunrice/commerce-multi-locations": "^1.0 || dev-main"
+        "sunrice/commerce": "^0.4",
+        "sunrice/commerce-multi-locations": "^0.1"
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
@@ -73,7 +57,5 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }
